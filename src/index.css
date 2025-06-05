@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .zenith-input {
+    @apply bg-white border border-neutral-300 rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-primary-400;
+  }
+  
+  .zenith-btn-primary {
+    @apply bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors;
+  }
+  
+  .zenith-btn-secondary {
+    @apply bg-secondary-600 text-white px-4 py-2 rounded-md hover:bg-secondary-700 transition-colors;
+  }
+  
+  .zenith-btn-outline {
+    @apply bg-transparent text-primary-600 border border-primary-600 px-4 py-2 rounded-md hover:bg-primary-50 transition-colors;
+  }
+  
+  .zenith-card {
+    @apply bg-white rounded-lg shadow-md p-6;
+  }
+}
