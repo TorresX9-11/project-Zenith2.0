@@ -1,0 +1,90 @@
+TRÍPTICO INFORMATIVO - ZENITH 2.0
+
+====================================
+
+PÁGINA 1: PORTADA
+------------------
+
+- Logo de Zenith 2.0 (opcional)
+- Título: "Zenith 2.0: Organiza tu tiempo, potencia tu vida"
+- Slogan: "La herramienta inteligente para gestionar tu día a día"
+- Imagen representativa (agenda, reloj, personas organizando actividades)
+
+====================================
+
+PÁGINA 2: ¿QUÉ ES ZENITH?
+-------------------------
+
+Zenith 2.0 es una aplicación web innovadora diseñada para ayudarte a organizar tu tiempo de manera eficiente y personalizada. Con una interfaz moderna y amigable, Zenith te permite gestionar tus actividades, visualizar tu horario y recibir recomendaciones inteligentes para mejorar tu productividad.
+
+- ¿Por qué Zenith?
+  - Optimiza tu tiempo
+  - Reduce el estrés
+  - Mejora tu organización personal y profesional
+
+====================================
+
+PÁGINA 3: CARACTERÍSTICAS PRINCIPALES
+-------------------------------------
+
+- Gestión de actividades: Crea, edita y elimina tareas fácilmente.
+- Horario visual: Visualiza tu agenda de forma clara y atractiva.
+- Recomendaciones con IA: Recibe sugerencias personalizadas para aprovechar mejor tu tiempo.
+- Interfaz intuitiva: Navegación sencilla y diseño responsivo.
+- Soporte para múltiples usuarios: Personaliza tu experiencia.
+
+====================================
+
+PÁGINA 4: ¿CÓMO FUNCIONA?
+-------------------------
+
+1. Regístrate y crea tu perfil.
+2. Añade tus actividades diarias, semanales o mensuales.
+3. Visualiza tu horario y recibe recomendaciones inteligentes.
+4. Ajusta tus actividades según tus necesidades y prioridades.
+
+====================================
+
+PÁGINA 5: TECNOLOGÍA Y SEGURIDAD
+--------------------------------
+
+- Desarrollado con React, TypeScript, Vite y Tailwind CSS.
+- Integración de IA para recomendaciones personalizadas.
+- Chatbot de asistencia inteligente (Botpress).
+- Seguridad y privacidad de tus datos garantizadas.
+
+====================================
+
+PÁGINA 6: IMPACTO Y TESTIMONIOS
+-------------------------------
+
+- "Zenith me ayudó a organizar mi semana y ser más productivo." - Usuario A
+- "La interfaz es muy fácil de usar y las recomendaciones son muy útiles." - Usuario B
+- "Ideal para estudiantes y profesionales que buscan optimizar su tiempo."
+
+====================================
+
+PÁGINA 7: CÓMO CONSEGUIR ZENITH
+-------------------------------
+
+- Accede desde cualquier navegador en tu computadora o móvil.
+- Visita: [http://localhost:5173](http://localhost:5173) (o la URL oficial del proyecto)
+- ¡Es gratis y fácil de usar!
+
+====================================
+
+PÁGINA 8: CONTACTO Y REDES
+--------------------------
+
+- ¿Tienes preguntas o sugerencias?
+- Email: contacto@zenithapp.com (o tu correo de contacto)
+- Síguenos en redes sociales:
+  - Instagram: @zenithapp
+  - Twitter: @zenithapp
+  - Facebook: ZenithApp
+
+¡Gracias por tu interés en Zenith 2.0!
+
+====================================
+
+(Nota: Puedes personalizar imágenes, colores y datos de contacto según tu identidad visual y necesidades del evento.)
