@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Activity, ActivityType, DayOfWeek } from '../types';
 import { Save, X, Clock } from 'lucide-react';
@@ -12,6 +13,7 @@ interface ActivityFormProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   onDayChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onTimeChange: (type: 'start' | 'end', value: string) => void;
+  timeBlocks: any[];
 }
 
 const ActivityForm: React.FC<ActivityFormProps> = ({
@@ -23,10 +25,32 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
   onCancel,
   onChange,
   onDayChange,
-  onTimeChange
+  onTimeChange,
+  timeBlocks
 }) => {
   const currentActivity = editingActivity || newActivity;
-  
+  // Día seleccionado (el primero de la lista o el primero de preferredDays)
+  const selectedDay = (currentActivity.preferredDays && currentActivity.preferredDays[0]) || days[0]?.value;
+  // Horas ocupadas en ese día
+  const getTakenHours = () => {
+    return timeBlocks
+      .filter(block => block.day === selectedDay)
+      .map(block => {
+        const start = parseInt(block.startTime.split(':')[0], 10);
+        const end = parseInt(block.endTime.split(':')[0], 10);
+        return { start, end };
+      });
+  };
+  const takenHours = getTakenHours();
+  // Verifica si una hora está ocupada
+  const isHourTaken = (hour: number) => takenHours.some(({ start, end }) => hour >= start && hour < end);
+  // Verifica si el rango está ocupado
+  const isRangeTaken = (start: number, end: number) => takenHours.some(({ start: s, end: e }) => start < e && end > s);
+
+  // Horas seleccionadas
+  const startHour = currentActivity.preferredTime?.startHour || 8;
+  const endHour = currentActivity.preferredTime?.endHour || 9;
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6 slide-up">
       <div className="flex justify-between items-center mb-4">
@@ -40,7 +64,6 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
           <X size={20} />
         </button>
       </div>
-      
       <form onSubmit={onSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
@@ -57,7 +80,6 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
               required
             />
           </div>
-          
           <div>
             <label htmlFor="type" className="block text-sm font-medium text-neutral-700 mb-2">
               Tipo
@@ -83,54 +105,49 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
             <label htmlFor="startTime" className="block text-sm font-medium text-neutral-700 mb-2">
               Hora de inicio
             </label>
-            <input
-              type="time"
+            <select
               id="startTime"
-              value={`${(editingActivity?.preferredTime?.startHour || newActivity.preferredTime?.startHour || 8).toString().padStart(2, '0')}:00`}
-              onChange={(e) => onTimeChange('start', e.target.value)}
+              value={startHour}
+              onChange={e => onTimeChange('start', e.target.value)}
               className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
+            >
+              {Array.from({ length: 17 }, (_, i) => 6 + i).map(hour => (
+                <option key={hour} value={hour} disabled={isHourTaken(hour)}>
+                  {hour.toString().padStart(2, '0') + ':00'} {isHourTaken(hour) ? '(Ocupado)' : ''}
+                </option>
+              ))}
+            </select>
           </div>
-
           <div>
             <label htmlFor="endTime" className="block text-sm font-medium text-neutral-700 mb-2">
               Hora de fin
             </label>
-            <input
-              type="time"
+            <select
               id="endTime"
-              value={`${(editingActivity?.preferredTime?.endHour || newActivity.preferredTime?.endHour || 9).toString().padStart(2, '0')}:00`}
-              onChange={(e) => onTimeChange('end', e.target.value)}
+              value={endHour}
+              onChange={e => onTimeChange('end', e.target.value)}
               className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>          <div className="text-sm text-neutral-600 flex items-center gap-2">
+            >
+              {Array.from({ length: 17 }, (_, i) => 7 + i).map(hour => (
+                <option key={hour} value={hour} disabled={isHourTaken(hour)}>
+                  {hour.toString().padStart(2, '0') + ':00'} {isHourTaken(hour) ? '(Ocupado)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="text-sm text-neutral-600 flex items-center gap-2">
             <Clock size={16} />
-            <span>Duración: {
-              (editingActivity?.preferredTime || newActivity.preferredTime) ? 
-              Math.round(((editingActivity?.preferredTime?.endHour || newActivity.preferredTime?.endHour || 9) - 
-              (editingActivity?.preferredTime?.startHour || newActivity.preferredTime?.startHour || 8)) * 10) / 10
-              : 0
-            } horas</span>
+            <span>Duración: {endHour - startHour} horas</span>
           </div>
         </div>
+        {/* Mensaje de advertencia si el rango está ocupado */}
+        {isRangeTaken(startHour, endHour) && (
+          <div className="text-red-600 text-xs mb-2">
+            El rango de horas seleccionado ya está ocupado. Por favor, elige otro horario.
+          </div>
+        )}
 
-        <div>
-          <label htmlFor="priority" className="block text-sm font-medium text-neutral-700 mb-2">
-            Prioridad
-          </label>
-          <select
-            id="priority"
-            name="priority"
-            value={editingActivity ? editingActivity.priority : newActivity.priority}
-            onChange={onChange}
-            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
-            required
-          >
-            <option value="high">Alta</option>
-            <option value="medium">Media</option>
-            <option value="low">Baja</option>
-          </select>
-        </div>
+
 
         <div className="mb-4">
           <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-2">
@@ -146,35 +163,34 @@ const ActivityForm: React.FC<ActivityFormProps> = ({
             placeholder="Escribe una descripción para esta actividad..."
           />
         </div>
-        
+
+
         <div className="mb-4">
-          <label className="block text-sm font-medium text-neutral-700 mb-2">
-            Días preferidos (opcional)
+          <label htmlFor="preferredDay" className="block text-sm font-medium text-neutral-700 mb-2">
+            Día
           </label>
-          <div className="flex flex-wrap gap-3">
+          <select
+            id="preferredDay"
+            name="preferredDay"
+            value={currentActivity.preferredDays ? currentActivity.preferredDays[0] : days[0]?.value}
+            onChange={e => {
+              const day = e.target.value;
+              onChange({
+                target: {
+                  name: 'preferredDays',
+                  value: [day]
+                }
+              } as any);
+            }}
+            className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            required
+          >
             {days.map(day => (
-              <label key={day.value} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="preferredDays"
-                  value={day.value}
-                  checked={
-                    editingActivity
-                      ? (editingActivity.preferredDays || []).includes(day.value)
-                      : (newActivity.preferredDays || []).includes(day.value)
-                  }
-                  onChange={onDayChange}
-                  className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-neutral-600">{day.label}</span>
-              </label>
+              <option key={day.value} value={day.value}>{day.label}</option>
             ))}
-          </div>
-          <p className="text-xs text-neutral-500 mt-2">
-            * El horario se aplicará a los días seleccionados
-          </p>
+          </select>
         </div>
-        
+
         <div className="flex justify-end gap-3">
           <button
             type="button"

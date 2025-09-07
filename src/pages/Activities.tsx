@@ -29,7 +29,6 @@ const Activities: React.FC = () => {
   });
 
   const activityTypes: { value: ActivityType; label: string; color: string }[] = [
-    { value: 'academic', label: 'Académica', color: 'bg-primary-100 text-primary-800' },
     { value: 'study', label: 'Estudio', color: 'bg-secondary-100 text-secondary-800' },
     { value: 'exercise', label: 'Ejercicio', color: 'bg-green-100 text-green-800' },
     { value: 'rest', label: 'Descanso', color: 'bg-accent-100 text-accent-800' },
@@ -365,6 +364,7 @@ const Activities: React.FC = () => {
                 onChange={handleChange}
                 onDayChange={handleDayChange}
                 onTimeChange={handleTimeChange}
+                timeBlocks={state.timeBlocks}
               />
             </div>
           )}

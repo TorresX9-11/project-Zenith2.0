@@ -1,11 +1,16 @@
 import React, { useState, useRef } from 'react';
 import { useZenith } from '../context/ZenithContext';
 import { DayOfWeek, TimeBlock } from '../types';
-import { Calendar, Clock, Plus, Info, Edit, Trash2, Save, X } from 'lucide-react';
+import { Calendar, Plus, Info, X, Save } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import TimeTable from '../components/TimeTable';
 
 const Schedule: React.FC = () => {
+  // Solo mostrar 'academic' y 'work' en el formulario de horario
+  const activityTypes = [
+    { value: 'academic', label: 'Académica' },
+    { value: 'work', label: 'Trabajo' }
+  ];
   const { state, addTimeBlock, removeTimeBlock, updateTimeBlock } = useZenith();
   const [showForm, setShowForm] = useState(false);
   const [editingBlock, setEditingBlock] = useState<TimeBlock | null>(null);
@@ -34,31 +39,78 @@ const Schedule: React.FC = () => {
     'sábado': 'Sábado',
     'domingo': 'Domingo',
   };
-
-  // Tipos de actividades principales para el horario
-  const activityTypes = [
-    { value: 'academic', label: 'Académica', isMain: true },
-    { value: 'work', label: 'Trabajo', isMain: true },
-    { value: 'study', label: 'Estudio' },
-    { value: 'exercise', label: 'Ejercicio' },
-    { value: 'rest', label: 'Descanso' },
-    { value: 'social', label: 'Social' },
-    { value: 'personal', label: 'Personal' },
-    { value: 'libre', label: 'Libre' }
-  ];
+  function isRangeTaken(day: string | undefined, start: string | undefined, end: string | undefined, ignoreId?: string) {
+    if (!day || !start || !end) return false;
+    const startHour = parseInt(start.split(':')[0], 10);
+    const endHour = parseInt(end.split(':')[0], 10);
+    return state.timeBlocks.some(block => {
+      if (block.day !== day) return false;
+      if (ignoreId && block.id === ignoreId) return false;
+      const blockStart = parseInt(block.startTime.split(':')[0], 10);
+      const blockEnd = parseInt(block.endTime.split(':')[0], 10);
+      return startHour < blockEnd && endHour > blockStart;
+    });
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (editingBlock) {
-      setEditingBlock({
-        ...editingBlock,
-        [name]: value
-      });
+    if (name === 'day') {
+      const selectedDay = value as DayOfWeek;
+      let firstFreeStart = '08:00';
+      for (let hour = 6; hour <= 22; hour++) {
+        const hourStr = hour.toString().padStart(2, '0') + ':00';
+        const isTaken = state.timeBlocks.some(block => {
+          if (block.day !== selectedDay) return false;
+          const blockStart = parseInt(block.startTime.split(':')[0], 10);
+          const blockEnd = parseInt(block.endTime.split(':')[0], 10);
+          return hour >= blockStart && hour < blockEnd;
+        });
+        if (!isTaken) {
+          firstFreeStart = hourStr;
+          break;
+        }
+      }
+      let firstFreeEnd = '09:00';
+      for (let hour = parseInt(firstFreeStart.split(':')[0], 10) + 1; hour <= 23; hour++) {
+        const hourStr = hour.toString().padStart(2, '0') + ':00';
+        const isTaken = state.timeBlocks.some(block => {
+          if (block.day !== selectedDay) return false;
+          const blockStart = parseInt(block.startTime.split(':')[0], 10);
+          const blockEnd = parseInt(block.endTime.split(':')[0], 10);
+          return hour > blockStart && hour <= blockEnd;
+        });
+        if (!isTaken) {
+          firstFreeEnd = hourStr;
+          break;
+        }
+      }
+      if (editingBlock) {
+        setEditingBlock({
+          ...editingBlock,
+          day: selectedDay,
+          startTime: firstFreeStart,
+          endTime: firstFreeEnd
+        });
+      } else {
+        setNewBlock({
+          ...newBlock,
+          day: selectedDay,
+          startTime: firstFreeStart,
+          endTime: firstFreeEnd
+        });
+      }
     } else {
-      setNewBlock({
-        ...newBlock,
-        [name]: value
-      });
+      if (editingBlock) {
+        setEditingBlock({
+          ...editingBlock,
+          [name]: value
+        });
+      } else {
+        setNewBlock({
+          ...newBlock,
+          [name]: value
+        });
+      }
     }
   };
 
@@ -66,7 +118,7 @@ const Schedule: React.FC = () => {
     e.preventDefault();
     
     if (editingBlock) {
-      updateTimeBlock(editingBlock);
+      updateTimeBlock({ ...editingBlock, type: 'occupied' });
       setEditingBlock(null);
     } else {
       if (newBlock.title && newBlock.day && newBlock.startTime && newBlock.endTime) {
@@ -80,7 +132,6 @@ const Schedule: React.FC = () => {
           day: 'lunes',
           startTime: '08:00',
           endTime: '09:00',
-          type: 'occupied',
           description: '',
           location: '',
           activityType: 'study'
@@ -219,48 +270,79 @@ const Schedule: React.FC = () => {
                 <label htmlFor="startTime" className="block text-sm font-medium text-neutral-700 mb-1">
                   Hora de Inicio
                 </label>
-                <input
-                  type="time"
+                <select
                   id="startTime"
                   name="startTime"
                   value={editingBlock ? editingBlock.startTime : newBlock.startTime}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
-                />
+                >
+                  {Array.from({ length: 17 }, (_, i) => 6 + i).map(hour => {
+                    const hourStr = hour.toString().padStart(2, '0') + ':00';
+                    const selectedDay = editingBlock ? editingBlock.day : newBlock.day;
+                    const isTaken = state.timeBlocks.some(block => {
+                      if (block.day !== selectedDay) return false;
+                      if (editingBlock && block.id === editingBlock.id) return false;
+                      const blockStart = parseInt(block.startTime.split(':')[0], 10);
+                      const blockEnd = parseInt(block.endTime.split(':')[0], 10);
+                      return hour >= blockStart && hour < blockEnd;
+                    });
+                    return (
+                      <option key={hourStr} value={hourStr} disabled={isTaken}>
+                        {hourStr} {isTaken ? '(Ocupado)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
-              
               <div>
                 <label htmlFor="endTime" className="block text-sm font-medium text-neutral-700 mb-1">
                   Hora de Fin
                 </label>
-                <input
-                  type="time"
+                <select
                   id="endTime"
                   name="endTime"
                   value={editingBlock ? editingBlock.endTime : newBlock.endTime}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="type" className="block text-sm font-medium text-neutral-700 mb-1">
-                  Tipo de Bloque
-                </label>
-                <select
-                  id="type"
-                  name="type"
-                  value={editingBlock ? editingBlock.type : newBlock.type}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
                 >
-                  <option value="occupied">Ocupado</option>
-                  <option value="free">Libre</option>
+                  {Array.from({ length: 17 }, (_, i) => 7 + i).map(hour => {
+                    const hourStr = hour.toString().padStart(2, '0') + ':00';
+                    const selectedDay = editingBlock ? editingBlock.day : newBlock.day;
+                    const isTaken = state.timeBlocks.some(block => {
+                      if (block.day !== selectedDay) return false;
+                      if (editingBlock && block.id === editingBlock.id) return false;
+                      const blockStart = parseInt(block.startTime.split(':')[0], 10);
+                      const blockEnd = parseInt(block.endTime.split(':')[0], 10);
+                      return hour > blockStart && hour <= blockEnd;
+                    });
+                    return (
+                      <option key={hourStr} value={hourStr} disabled={isTaken}>
+                        {hourStr} {isTaken ? '(Ocupado)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
+              {/* Mensaje de advertencia si el rango está ocupado */}
+              {(() => {
+                const selectedDay = editingBlock ? editingBlock.day : newBlock.day;
+                const start = editingBlock ? editingBlock.startTime : newBlock.startTime;
+                const end = editingBlock ? editingBlock.endTime : newBlock.endTime;
+                const ignoreId = editingBlock ? editingBlock.id : undefined;
+                if (isRangeTaken(selectedDay, start, end, ignoreId)) {
+                  return (
+                    <div className="text-red-600 text-xs mt-2">
+                      El rango de horas seleccionado ya está ocupado. Por favor, elige otro horario.
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              
+              {/* Campo tipo de bloque oculto. Todos los bloques serán 'ocupado' automáticamente. */}
               
               <div>
                 <label htmlFor="activityType" className="block text-sm font-medium text-neutral-700 mb-1">
@@ -274,24 +356,11 @@ const Schedule: React.FC = () => {
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 mb-1"
                   required
                 >
-                  <optgroup label="Actividades Principales">
-                    {activityTypes
-                      .filter(type => type.isMain)
-                      .map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
-                  </optgroup>
-                  <optgroup label="Otras Actividades">
-                    {activityTypes
-                      .filter(type => !type.isMain)
-                      .map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
-                  </optgroup>
+                  {activityTypes.map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
                 </select>
-                <p className="text-xs text-neutral-500 mt-1">
-                  Para una mejor organización, primero agrega tus actividades académicas o laborales fijas.
-                </p>
+                {/* Texto informativo eliminado por requerimiento */}
               </div>
               
               <div>
@@ -310,20 +379,7 @@ const Schedule: React.FC = () => {
               </div>
             </div>
             
-            <div className="mb-4">
-              <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-1">
-                Descripción (opcional)
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={editingBlock && editingBlock.description ? editingBlock.description : newBlock.description || ''}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Agrega detalles sobre este bloque de tiempo"
-              />
-            </div>
+            {/* Campo descripción eliminado por requerimiento */}
             
             <div className="flex justify-end gap-3">
               <button
