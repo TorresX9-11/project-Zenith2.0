@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useZenith } from '../context/ZenithContext';
 import { DayOfWeek, TimeBlock } from '../types';
-import { Calendar, Plus, Info, X, Save } from 'lucide-react';
+import { Calendar, Plus, Info, X, Save, HelpCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import TimeTable from '../components/TimeTable';
 
@@ -14,6 +14,7 @@ const Schedule: React.FC = () => {
   const { state, addTimeBlock, removeTimeBlock, updateTimeBlock } = useZenith();
   const [showForm, setShowForm] = useState(false);
   const [editingBlock, setEditingBlock] = useState<TimeBlock | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
   const [newBlock, setNewBlock] = useState<Partial<TimeBlock>>({
     title: '',
@@ -175,36 +176,20 @@ const Schedule: React.FC = () => {
 
   return (
     <div className="fade-in">
-      <div className="bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-100 rounded-lg p-6 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0">
-            <Info size={24} className="text-primary-600" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-primary-800 mb-2">¡Bienvenido a tu Organizador Personal!</h2>
-            <div className="text-neutral-700 space-y-2">
-              <p>Aquí puedes gestionar tu horario semanal de forma intuitiva. Algunos consejos:</p>
-              <ul className="list-disc list-inside ml-4 space-y-1 text-sm">
-                <li>Haz clic en cualquier espacio vacío del horario para añadir una actividad rápidamente</li>
-                <li>Utiliza diferentes tipos de actividades para organizar mejor tu tiempo</li>
-                <li>¿Necesitas ayuda? Nuestro chatbot integrado está disponible para responder tus preguntas sobre organización del tiempo</li>
-                <li>Recuerda guardar tus cambios después de cada modificación</li>
-              </ul>
-              <p className="text-sm mt-2 text-primary-600">
-                <strong>Consejo Pro:</strong> Comienza agregando tus actividades fijas como clases o trabajo, y luego organiza el resto de tu tiempo alrededor de ellas.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="flex justify-between items-center mb-6">
-        <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Calendar size={24} className="text-primary-600" />
             <span>Horario Semanal</span>
           </h1>
-          <p className="text-neutral-600">Gestiona tus clases y actividades semanales</p>
+          <button 
+            onClick={() => setShowHelp(!showHelp)}
+            className="p-1 hover:bg-neutral-100 rounded-full transition-colors"
+            title="Mostrar ayuda"
+          >
+            <HelpCircle size={20} className="text-neutral-400" />
+          </button>
+          <p className="text-neutral-600 ml-20">Gestiona tus clases y actividades semanales</p>
         </div>
         
         <button 
@@ -215,6 +200,43 @@ const Schedule: React.FC = () => {
           <span>Agregar Bloque</span>
         </button>
       </div>
+
+      {/* Modal de ayuda */}
+      {showHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200">
+              <div className="flex items-center gap-3">
+                <HelpCircle size={24} className="text-primary-600" />
+                <h2 className="text-xl font-semibold text-primary-800">¡Bienvenido a tu Organizador Personal!</h2>
+              </div>
+              <button 
+                onClick={() => setShowHelp(false)}
+                className="text-neutral-500 hover:text-neutral-700 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="text-neutral-700 space-y-4">
+                <p>Aquí puedes gestionar tu horario semanal de forma intuitiva. Algunos consejos:</p>
+                <ul className="list-disc list-inside ml-4 space-y-2 text-sm">
+                  <li>Haz clic en cualquier espacio vacío del horario para añadir una actividad rápidamente</li>
+                  <li>Utiliza diferentes tipos de actividades para organizar mejor tu tiempo</li>
+                  <li>¿Necesitas ayuda? Nuestro chatbot integrado está disponible para responder tus preguntas sobre organización del tiempo</li>
+                  <li>Recuerda guardar tus cambios después de cada modificación</li>
+                </ul>
+                <div className="p-4 bg-primary-50 border border-primary-100 rounded-md">
+                  <p className="text-sm text-primary-700">
+                    <strong>Consejo Pro:</strong> Comienza agregando tus actividades fijas como clases o trabajo, y luego organiza el resto de tu tiempo alrededor de ellas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {(showForm || editingBlock) && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6 slide-up" ref={formRef}>

@@ -11,7 +11,9 @@ import {
   Users, 
   Coffee, 
   Dumbbell, 
-  Calendar 
+  Calendar,
+  HelpCircle,
+  X
 } from 'lucide-react';
 import TimeTable from '../components/TimeTable';
 
@@ -70,6 +72,8 @@ const Dashboard: React.FC = () => {
     getTotalFreeTime,
     getTotalOccupiedTime
   } = useZenith();
+  
+  const [showHelp, setShowHelp] = React.useState(false);
 
   const hasSchedule = state.timeBlocks.length > 0;
   const hasActivities = state.activities.length > 0;
@@ -249,38 +253,59 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="fade-in">
-      <div className="bg-gradient-to-r from-accent-50 to-primary-50 border border-accent-100 rounded-lg p-6 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0">
-            <BarChart3 size={24} className="text-accent-600" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-accent-800 mb-2">Centro de Análisis y Recomendaciones</h2>
-            <div className="text-neutral-700 space-y-2">
-              <p>Aquí encontrarás un análisis detallado de tu distribución de tiempo y recomendaciones personalizadas:</p>
-              <ul className="list-disc list-inside ml-4 space-y-1 text-sm">
-                <li>Visualiza tu horario semanal y la distribución de actividades</li>
-                <li>Recibe recomendaciones basadas en tu patrón de actividades</li>
-                <li>Monitorea tu productividad y balance de tiempo</li>
-                <li>Descubre técnicas de estudio efectivas</li>
-              </ul>
-              <div className="mt-3 bg-white bg-opacity-50 p-3 rounded-lg">
-                <p className="text-sm text-accent-700">
-                  <strong>¿Necesitas ayuda?</strong> Nuestro chatbot puede ayudarte a interpretar estas métricas y sugerir mejoras para tu organización. ¡Pregúntale sobre cualquier aspecto de tu horario!
-                </p>
+      <div className="mb-6">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <BarChart3 size={24} className="text-primary-600" />
+            <span>Dashboard</span>
+          </h1>
+          <button 
+            onClick={() => setShowHelp(!showHelp)}
+            className="p-1 hover:bg-neutral-100 rounded-full transition-colors"
+            title="Mostrar ayuda"
+          >
+            <HelpCircle size={20} className="text-neutral-400" />
+          </button>
+          <p className="text-neutral-600 ml-20">Visualiza y analiza tu distribución de tiempo</p>
+        </div>
+      </div>
+
+      {/* Modal de ayuda */}
+      {showHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200">
+              <div className="flex items-center gap-3">
+                <HelpCircle size={24} className="text-accent-600" />
+                <h2 className="text-xl font-semibold text-accent-800">Centro de Análisis y Recomendaciones</h2>
+              </div>
+              <button 
+                onClick={() => setShowHelp(false)}
+                className="text-neutral-500 hover:text-neutral-700 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="text-neutral-700 space-y-4">
+                <p>Aquí encontrarás un análisis detallado de tu distribución de tiempo y recomendaciones personalizadas:</p>
+                <ul className="list-disc list-inside ml-4 space-y-2 text-sm">
+                  <li>Visualiza tu horario semanal y la distribución de actividades</li>
+                  <li>Recibe recomendaciones basadas en tu patrón de actividades</li>
+                  <li>Monitorea tu productividad y balance de tiempo</li>
+                  <li>Descubre técnicas de estudio efectivas</li>
+                </ul>
+                <div className="p-4 bg-accent-50 border border-accent-100 rounded-md">
+                  <p className="text-sm text-accent-700">
+                    <strong>¿Necesitas ayuda?</strong> Nuestro chatbot puede ayudarte a interpretar estas métricas y sugerir mejoras para tu organización. ¡Pregúntale sobre cualquier aspecto de tu horario!
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <BarChart3 size={24} className="text-primary-600" />
-          <span>Dashboard</span>
-        </h1>
-        <p className="text-neutral-600">Visualiza y analiza tu distribución de tiempo</p>
-      </div>
+      )}
 
       {!hasSchedule && !hasActivities ? (
         <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-8 text-center">

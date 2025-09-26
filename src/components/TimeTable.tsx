@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TimeBlock, DayOfWeek, ActivityType } from '../types';
-import { Clock, Edit, Trash2 } from 'lucide-react';
+import { Clock, Edit, Trash2, MapPin, Calendar, User } from 'lucide-react';
 
 interface TimeTableProps {
   timeBlocks: TimeBlock[];
@@ -19,6 +19,8 @@ const TimeTable: React.FC<TimeTableProps> = ({
   onEditBlock,
   onDeleteBlock
 }) => {
+  const [hoveredSlot, setHoveredSlot] = useState<TimeBlock | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const days: DayOfWeek[] = [
     'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'
   ];
@@ -73,6 +75,33 @@ const TimeTable: React.FC<TimeTableProps> = ({
     });
   };
 
+  const handleMouseEnter = (slot: TimeBlock, event: React.MouseEvent) => {
+    setHoveredSlot(slot);
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredSlot(null);
+  };
+
+  const getActivityTypeLabel = (type?: ActivityType): string => {
+    const labels: Record<ActivityType, string> = {
+      academic: 'Académico',
+      work: 'Trabajo',
+      study: 'Estudio',
+      exercise: 'Ejercicio',
+      rest: 'Descanso',
+      social: 'Social',
+      personal: 'Personal',
+      libre: 'Libre'
+    };
+    return type ? labels[type] : 'Sin clasificar';
+  };
+
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[800px]">
@@ -111,16 +140,12 @@ const TimeTable: React.FC<TimeTableProps> = ({
                     <div
                       key={day}
                       className={`rounded-md border transition-colors relative overflow-hidden group cursor-pointer ${getActivityColor(slot.type, slot.activityType)} hover:opacity-90`}
+                      onMouseEnter={(e) => handleMouseEnter(slot, e)}
+                      onMouseLeave={handleMouseLeave}
                     >
                       <div className="absolute inset-0 p-2 flex flex-col justify-between h-full">
                         <div>
                           <div className="text-sm font-medium truncate">{slot.title}</div>
-                          {slot.location && (
-                            <div className="text-xs opacity-75 truncate flex items-center gap-1">
-                              <span className="inline-block w-2 h-2 rounded-full bg-current" />
-                              {slot.location}
-                            </div>
-                          )}
                         </div>
                         <div className="text-xs opacity-75">
                           {slot.startTime} - {slot.endTime}
@@ -163,6 +188,8 @@ const TimeTable: React.FC<TimeTableProps> = ({
                       onClick={() => {
                         onSlotClick?.(day, hour);
                       }}
+                      onMouseEnter={slot ? (e) => handleMouseEnter(slot, e) : undefined}
+                      onMouseLeave={slot ? handleMouseLeave : undefined}
                       className={`rounded-md border transition-colors relative overflow-hidden group ${
                         slot
                           ? `${getActivityColor(slot.type, slot.activityType)} hover:opacity-90`
@@ -174,12 +201,6 @@ const TimeTable: React.FC<TimeTableProps> = ({
                           <div className="absolute inset-0 p-2 flex flex-col justify-between h-full">
                             <div>
                               <div className="text-sm font-medium truncate">{slot.title}</div>
-                              {slot.location && (
-                                <div className="text-xs opacity-75 truncate flex items-center gap-1">
-                                  <span className="inline-block w-2 h-2 rounded-full bg-current" />
-                                  {slot.location}
-                                </div>
-                              )}
                             </div>
                             <div className="text-xs opacity-75">
                               {slot.startTime} - {slot.endTime}
@@ -195,6 +216,50 @@ const TimeTable: React.FC<TimeTableProps> = ({
           ))}
         </div>
       </div>
+      
+      {/* Tooltip */}
+      {hoveredSlot && (
+        <div
+          className="fixed z-50 bg-white border border-neutral-200 rounded-lg shadow-lg p-4 max-w-xs pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: 'translateX(-50%) translateY(-100%)'
+          }}
+        >
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-primary-600" />
+              <h3 className="font-semibold text-neutral-800">{hoveredSlot.title}</h3>
+            </div>
+            
+            <div className="flex items-center gap-2 text-sm text-neutral-600">
+              <Clock size={14} />
+              <span>{hoveredSlot.startTime} - {hoveredSlot.endTime}</span>
+            </div>
+            
+            {hoveredSlot.activityType && (
+              <div className="flex items-center gap-2 text-sm">
+                <User size={14} className="text-neutral-500" />
+                <span className="text-neutral-600">{getActivityTypeLabel(hoveredSlot.activityType)}</span>
+              </div>
+            )}
+            
+            {hoveredSlot.location && (
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin size={14} className="text-neutral-500" />
+                <span className="text-neutral-600">{hoveredSlot.location}</span>
+              </div>
+            )}
+            
+            {hoveredSlot.description && (
+              <div className="text-sm text-neutral-600 pt-1 border-t border-neutral-100">
+                <p className="line-clamp-2">{hoveredSlot.description}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,16 +1,16 @@
 import React, { useState, useRef } from 'react';
 import { useZenith } from '../context/ZenithContext';
 import { ActivityType, Activity, DayOfWeek } from '../types';
-import { ListTodo, Plus, Trash2, Clock, BarChart3, Calendar } from 'lucide-react';
+import { ListTodo, Plus, BarChart3, Calendar, HelpCircle, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import TimeTable from '../components/TimeTable';
 import ActivityForm from '../components/ActivityForm';
 
 const Activities: React.FC = () => {
-  const { state, addActivity, removeActivity, updateActivity } = useZenith();
+  const { state, addActivity, updateActivity } = useZenith();
   const [showForm, setShowForm] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-  const [selectedTime, setSelectedTime] = useState<{ day: DayOfWeek; hour: number } | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
   const activityGroupsRef = useRef<HTMLDivElement>(null);
   const lastAddedActivityRef = useRef<string | null>(null);
@@ -108,7 +108,6 @@ const Activities: React.FC = () => {
   };
 
   const handleTimeSlotClick = (day: DayOfWeek, hour: number) => {
-    setSelectedTime({ day, hour });
     if (!showForm) {
       setNewActivity(prev => ({
         ...prev,
@@ -224,92 +223,31 @@ const Activities: React.FC = () => {
       }
     });
     setShowForm(false);
-    setSelectedTime(null);
   };
   const handleCancel = () => {
     setShowForm(false);
     setEditingActivity(null);
-    setSelectedTime(null);
   };
 
-  const handleDelete = (id: string) => {
-    removeActivity(id);
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-error-100 text-error-800';
-      case 'medium':
-        return 'bg-warning-100 text-warning-800';
-      case 'low':
-        return 'bg-success-100 text-success-800';
-      default:
-        return 'bg-neutral-100 text-neutral-800';
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'Alta';
-      case 'medium':
-        return 'Media';
-      case 'low':
-        return 'Baja';
-      default:
-        return 'No especificada';
-    }
-  };
-
-  const getActivityTypeColor = (type: ActivityType) => {
-    const activity = activityTypes.find(t => t.value === type);
-    return activity ? activity.color : 'bg-neutral-100 text-neutral-800';
-  };
-
-  const activityGroups = activityTypes.map(type => ({
-    type: type.value,
-    label: type.label,
-    activities: state.activities.filter(activity => activity.type === type.value)
-  })).filter(group => group.activities.length > 0);
 
   const hasActivities = state.activities.length > 0;
 
   return (
     <div className="fade-in">
-      <div className="bg-gradient-to-r from-secondary-50 to-primary-50 border border-secondary-100 rounded-lg p-6 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0">
-            <ListTodo size={24} className="text-secondary-600" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-secondary-800 mb-2">Centro de Actividades</h2>
-            <div className="text-neutral-700 space-y-2">
-              <p>Gestiona tus actividades y tareas de forma efectiva. Aquí puedes:</p>
-              <ul className="list-disc list-inside ml-4 space-y-1 text-sm">
-                <li>Crear y organizar actividades académicas, laborales y personales</li>
-                <li>Establecer prioridades y fechas límite</li>
-                <li>Eliminar actividades que ya no necesites</li>
-                <li>Visualizar estadísticas de tu distribución de tiempo</li>
-                <li>Recibir recomendaciones personalizadas del sistema</li>
-              </ul>
-              <div className="mt-2 p-2 bg-accent-50 border border-accent-100 rounded-md">
-                <p className="text-sm text-accent-700">
-                  <strong>Nota importante:</strong> Para editar una actividad, ve a la sección de "Horario Semanal" donde podrás modificar todos los detalles de tus actividades programadas.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="flex justify-between items-center mb-6">
-        <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <ListTodo size={24} className="text-primary-600" />
             <span>Actividades</span>
           </h1>
-          <p className="text-neutral-600">Gestiona tus actividades para organizar tu tiempo libre</p>
+          <button 
+            onClick={() => setShowHelp(!showHelp)}
+            className="p-1 hover:bg-neutral-100 rounded-full transition-colors"
+            title="Mostrar ayuda"
+          >
+            <HelpCircle size={20} className="text-neutral-400" />
+          </button>
+          <p className="text-neutral-600 ml-20">Gestiona tus actividades para organizar tu tiempo libre</p>
         </div>
         
         {state.timeBlocks.length > 0 && (
@@ -322,6 +260,44 @@ const Activities: React.FC = () => {
           </button>
         )}
       </div>
+
+      {/* Modal de ayuda */}
+      {showHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200">
+              <div className="flex items-center gap-3">
+                <HelpCircle size={24} className="text-secondary-600" />
+                <h2 className="text-xl font-semibold text-secondary-800">Centro de Actividades</h2>
+              </div>
+              <button 
+                onClick={() => setShowHelp(false)}
+                className="text-neutral-500 hover:text-neutral-700 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="text-neutral-700 space-y-4">
+                <p>Gestiona tus actividades y tareas de forma efectiva. Aquí puedes:</p>
+                <ul className="list-disc list-inside ml-4 space-y-2 text-sm">
+                  <li>Crear y organizar actividades académicas, laborales y personales</li>
+                  <li>Establecer prioridades y fechas límite</li>
+                  <li>Eliminar actividades que ya no necesites</li>
+                  <li>Visualizar estadísticas de tu distribución de tiempo</li>
+                  <li>Recibir recomendaciones personalizadas del sistema</li>
+                </ul>
+                <div className="p-4 bg-accent-50 border border-accent-100 rounded-md">
+                  <p className="text-sm text-accent-700">
+                    <strong>Nota importante:</strong> Para editar una actividad, ve a la sección de "Horario Semanal" donde podrás modificar todos los detalles de tus actividades programadas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {state.timeBlocks.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -339,21 +315,8 @@ const Activities: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Calendar size={20} className="text-primary-600" />
-              <span>Horario Semanal</span>
-            </h2>
-            <TimeTable 
-              timeBlocks={state.timeBlocks}
-              onSlotClick={handleTimeSlotClick}
-              startHour={5}
-              endHour={22}
-            />
-          </div>
-
           {(showForm || editingActivity) && (
-            <div ref={formRef}>
+            <div ref={formRef} className="mb-6">
               <ActivityForm 
                 editingActivity={editingActivity}
                 newActivity={newActivity}
@@ -369,7 +332,20 @@ const Activities: React.FC = () => {
             </div>
           )}
 
-          {!hasActivities && !showForm ? (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Calendar size={20} className="text-primary-600" />
+              <span>Horario Semanal</span>
+            </h2>
+            <TimeTable 
+              timeBlocks={state.timeBlocks}
+              onSlotClick={handleTimeSlotClick}
+              startHour={5}
+              endHour={22}
+            />
+          </div>
+
+          {!hasActivities && !showForm && (
             <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-8 text-center">
               <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <BarChart3 size={28} className="text-neutral-400" />
@@ -386,76 +362,6 @@ const Activities: React.FC = () => {
                 <span>Nueva Actividad</span>
               </button>
             </div>
-          ) : (
-            hasActivities && (
-              <div ref={activityGroupsRef} className="space-y-8">
-                {activityGroups.map(group => (
-                  <div key={group.type} className="bg-white rounded-lg shadow-md p-6">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-md text-sm ${getActivityTypeColor(group.type)}`}>
-                        {group.label}
-                      </span>
-                      <span className="text-neutral-600 text-sm">
-                        ({group.activities.length} {group.activities.length === 1 ? 'actividad' : 'actividades'})
-                      </span>
-                    </h2>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {group.activities.map(activity => (
-                        <div 
-                          key={activity.id}
-                          id={`activity-${activity.id}`}
-                          className={`border border-neutral-200 rounded-lg p-4 hover:shadow-sm transition-shadow ${
-                            lastAddedActivityRef.current === activity.id ? 'ring-2 ring-primary-500' : ''
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-medium">{activity.name}</h3>
-                            <span className={`px-2 py-0.5 rounded-full text-xs ${getPriorityColor(activity.priority)}`}>
-                              {getPriorityLabel(activity.priority)}
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center gap-1 text-neutral-600 text-sm mb-2">
-                            <Clock size={14} />
-                            <span>{activity.preferredTime ? (
-                              `${activity.preferredTime.startHour}:00 - ${activity.preferredTime.endHour}:00 (${activity.duration} ${activity.duration === 1 ? 'hora' : 'horas'})`
-                            ) : `${activity.duration} ${activity.duration === 1 ? 'hora' : 'horas'}`}</span>
-                          </div>
-                          
-                          {activity.description && (
-                            <p className="text-sm text-neutral-600 mb-3">{activity.description}</p>
-                          )}
-                          
-                          {activity.preferredDays && activity.preferredDays.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {activity.preferredDays.map(day => (
-                                <span 
-                                  key={day}
-                                  className="px-2 py-0.5 bg-neutral-100 rounded text-neutral-600 text-xs"
-                                >
-                                  {days.find(d => d.value === day)?.label}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          
-                          <div className="flex justify-end">
-                            <button
-                              onClick={() => handleDelete(activity.id)}
-                              className="p-1 text-neutral-500 hover:text-error-600"
-                              title="Eliminar"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
           )}
         </>
       )}

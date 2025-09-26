@@ -8,7 +8,7 @@ const Layout: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="bg-primary-600 text-white py-4">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BrainCog size={28} />
@@ -23,7 +23,7 @@ const Layout: React.FC = () => {
       <Navbar />
       
       <main className="flex-grow">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto py-6">
           <Outlet />
         </div>
       </main>

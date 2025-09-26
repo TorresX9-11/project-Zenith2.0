@@ -1,22 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, ListTodo, BarChart3, ArrowRight, Clock, Brain, BookOpen, Trophy, AlertTriangle, X } from 'lucide-react';
+import { Calendar, ListTodo, BarChart3, ArrowRight, Clock, Brain, BookOpen, Trophy, AlertTriangle, X, Info } from 'lucide-react';
 import { useZenith } from '../context/ZenithContext';
 
 const Home: React.FC = () => {
   const { state, calculateProductivity, getTotalFreeTime, getTotalOccupiedTime } = useZenith();
-  const [showWarning, setShowWarning] = useState(true);
+  const [showWarning, setShowWarning] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
   const hasSchedule = state.timeBlocks.length > 0;
   const hasActivities = state.activities.length > 0;
+
+  // Detectar si es una recarga de página real
+  useEffect(() => {
+    // Verificar si es una recarga de página
+    const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const isPageReload = navigationEntries.length > 0 && navigationEntries[0].type === 'reload';
+    
+    // Verificar si viene de la misma aplicación (navegación interna)
+    const currentOrigin = window.location.origin;
+    const isFromSameApp = document.referrer.startsWith(currentOrigin);
+    
+    // Mostrar solo si es una recarga de página Y no viene de navegación interna
+    if (isPageReload && !isFromSameApp) {
+      setShowWarning(true);
+    }
+  }, []);
+
+  const handleCloseWarning = () => {
+    setShowWarning(false);
+  };
+
+  const handleShowWarningModal = () => {
+    setShowWarningModal(true);
+  };
   
   return (
     <div className="fade-in relative">
-      {/* Modal de advertencia importante */}
+      {/* Modal de advertencia importante - Solo se muestra al recargar la página */}
       {showWarning && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
             <button 
-              onClick={() => setShowWarning(false)}
+              onClick={handleCloseWarning}
               className="absolute top-4 right-4 text-neutral-500 hover:text-neutral-700"
             >
               <X size={20} />
@@ -34,7 +59,39 @@ const Home: React.FC = () => {
               <li>Considera tomar capturas de pantalla de tu horario como respaldo</li>
             </ul>
             <button
-              onClick={() => setShowWarning(false)}
+              onClick={handleCloseWarning}
+              className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de advertencia - Para mostrar de nuevo */}
+      {showWarningModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+            <button 
+              onClick={() => setShowWarningModal(false)}
+              className="absolute top-4 right-4 text-neutral-500 hover:text-neutral-700"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex items-center gap-2 text-warning-600 mb-4">
+              <AlertTriangle size={24} />
+              <h2 className="text-xl font-bold">¡IMPORTANTE!</h2>
+            </div>
+            <p className="text-neutral-700 mb-4">
+              Tus datos se guardan localmente en el navegador. Para evitar pérdida de información:
+            </p>
+            <ul className="list-disc list-inside text-neutral-600 mb-4 space-y-2">
+              <li>No borres el caché del navegador</li>
+              <li>Utiliza siempre el mismo navegador y dispositivo</li>
+              <li>Considera tomar capturas de pantalla de tu horario como respaldo</li>
+            </ul>
+            <button
+              onClick={() => setShowWarningModal(false)}
               className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors"
             >
               Entendido
@@ -44,8 +101,19 @@ const Home: React.FC = () => {
       )}
 
       <section className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white mb-8">
-        <h1 className="text-3xl font-bold mb-4">Bienvenido a Zenith</h1>
-        <p className="text-lg mb-6">Tu asistente inteligente para organizar tu tiempo de forma equilibrada y efectiva.</p>
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Bienvenido a Zenith</h1>
+            <p className="text-lg">Tu asistente inteligente para organizar tu tiempo de forma equilibrada y efectiva.</p>
+          </div>
+          <button
+            onClick={handleShowWarningModal}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            title="Ver información importante"
+          >
+            <Info size={24} className="text-white/80" />
+          </button>
+        </div>
         
         {!hasSchedule && (
           <Link to="/horario" className="bg-white text-primary-700 px-6 py-3 rounded-lg font-medium flex items-center gap-2 w-fit hover:bg-neutral-100 transition-colors">
