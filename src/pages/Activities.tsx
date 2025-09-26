@@ -21,7 +21,7 @@ const Activities: React.FC = () => {
     duration: 1,
     priority: 'medium',
     description: '',
-    preferredDays: [],
+    preferredDays: ["lunes"],
     preferredTime: {
       startHour: 8,
       endHour: 9
