@@ -254,19 +254,24 @@ const Dashboard: React.FC = () => {
   return (
     <div className="fade-in">
       <div className="mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <BarChart3 size={24} className="text-primary-600" />
-            <span>Dashboard</span>
-          </h1>
-          <button 
-            onClick={() => setShowHelp(!showHelp)}
-            className="p-1 hover:bg-neutral-100 rounded-full transition-colors"
-            title="Mostrar ayuda"
-          >
-            <HelpCircle size={20} className="text-neutral-400" />
-          </button>
-          <p className="text-neutral-600 ml-20">Visualiza y analiza tu distribución de tiempo</p>
+        {/* Header móvil */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <BarChart3 size={20} className="text-primary-600 sm:w-6 sm:h-6" />
+              <span>Dashboard</span>
+            </h1>
+            <button 
+              onClick={() => setShowHelp(!showHelp)}
+              className="p-1 hover:bg-neutral-100 rounded-full transition-colors"
+              title="Mostrar ayuda"
+            >
+              <HelpCircle size={18} className="text-neutral-400 sm:w-5 sm:h-5" />
+            </button>
+          </div>
+          <p className="text-sm sm:text-base text-neutral-600 sm:ml-0">
+            Visualiza y analiza tu distribución de tiempo
+          </p>
         </div>
       </div>
 

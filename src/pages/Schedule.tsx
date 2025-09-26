@@ -176,29 +176,36 @@ const Schedule: React.FC = () => {
 
   return (
     <div className="fade-in">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Calendar size={24} className="text-primary-600" />
-            <span>Horario Semanal</span>
-          </h1>
+      <div className="mb-6">
+        {/* Header móvil */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <Calendar size={20} className="text-primary-600 sm:w-6 sm:h-6" />
+                <span>Horario Semanal</span>
+              </h1>
+              <button 
+                onClick={() => setShowHelp(!showHelp)}
+                className="p-1 hover:bg-neutral-100 rounded-full transition-colors"
+                title="Mostrar ayuda"
+              >
+                <HelpCircle size={18} className="text-neutral-400 sm:w-5 sm:h-5" />
+              </button>
+            </div>
+            <p className="text-sm sm:text-base text-neutral-600 sm:ml-0">
+              Gestiona tus clases y actividades semanales
+            </p>
+          </div>
+          
           <button 
-            onClick={() => setShowHelp(!showHelp)}
-            className="p-1 hover:bg-neutral-100 rounded-full transition-colors"
-            title="Mostrar ayuda"
+            onClick={handleShowForm}
+            className="bg-primary-600 text-white px-3 py-2 sm:px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base w-full sm:w-auto"
           >
-            <HelpCircle size={20} className="text-neutral-400" />
+            <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span>Agregar Bloque</span>
           </button>
-          <p className="text-neutral-600 ml-20">Gestiona tus clases y actividades semanales</p>
         </div>
-        
-        <button 
-          onClick={handleShowForm}
-          className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors flex items-center gap-2"
-        >
-          <Plus size={18} />
-          <span>Agregar Bloque</span>
-        </button>
       </div>
 
       {/* Modal de ayuda */}
