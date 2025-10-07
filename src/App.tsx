@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -11,7 +12,7 @@ import './App.css';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 lg:p-12">
       <div className="max-w-5xl mx-auto shadow-lg rounded-xl bg-white">
         <ZenithProvider>
           <Router>
