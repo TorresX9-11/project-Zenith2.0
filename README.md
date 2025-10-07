@@ -1,4 +1,4 @@
-# Zenith
+# Zenith 2.0
 
 Organiza tu semana de forma visual, define actividades y recibe recomendaciones inteligentes para mejorar tu productividad. Construido con React + TypeScript, Vite y Tailwind CSS, con estado global y persistencia en `localStorage`.
 
