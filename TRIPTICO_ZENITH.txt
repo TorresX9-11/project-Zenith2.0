@@ -2,7 +2,7 @@ TRÍPTICO INFORMATIVO - ZENITH 2.0
 
 ====================================
 
-PÁGINA 1: PORTADA
+PÁGINA 1: PORTADA.
 ------------------
 
 - Logo de Zenith 2.0 (opcional)
