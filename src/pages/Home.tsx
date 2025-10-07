@@ -10,19 +10,13 @@ const Home: React.FC = () => {
   const hasSchedule = state.timeBlocks.length > 0;
   const hasActivities = state.activities.length > 0;
 
-  // Detectar si es una recarga de página real
+  // Verificar si es la primera vez que el usuario visita la página
   useEffect(() => {
-    // Verificar si es una recarga de página
-    const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-    const isPageReload = navigationEntries.length > 0 && navigationEntries[0].type === 'reload';
+    const hasSeenWarning = localStorage.getItem('hasSeenDataWarning');
     
-    // Verificar si viene de la misma aplicación (navegación interna)
-    const currentOrigin = window.location.origin;
-    const isFromSameApp = document.referrer.startsWith(currentOrigin);
-    
-    // Mostrar solo si es una recarga de página Y no viene de navegación interna
-    if (isPageReload && !isFromSameApp) {
+    if (!hasSeenWarning) {
       setShowWarning(true);
+      localStorage.setItem('hasSeenDataWarning', 'true');
     }
   }, []);
 
