@@ -1,7 +1,7 @@
 // Time block related types
 export type DayOfWeek = 'lunes' | 'martes' | 'miércoles' | 'jueves' | 'viernes' | 'sábado' | 'domingo';
 export type BlockType = 'occupied' | 'free';
-export type ActivityType = 'academic' | 'work' | 'study' | 'exercise' | 'rest' | 'social' | 'personal' | 'libre';
+export type ActivityType = 'academic' | 'work' | 'study' | 'exercise' | 'rest' | 'social' | 'personal';
 
 export interface TimeBlock {
   id: string;
@@ -14,14 +14,21 @@ export interface TimeBlock {
   location?: string;
   activityType?: ActivityType; // Tipo de actividad asociada
   color?: string;
+  completedAt?: string | null;
 }
 
 export interface Activity {
   id: string;
   name: string;
   type: ActivityType;
-  duration: number; // in hours
-  priority: 'high' | 'medium' | 'low';
+  duration: number; // legacy field (can be used)
+  priority: 'high' | 'medium' | 'low'; // legacy
+  // New fields for weekly tracker
+  estimatedDuration?: number; // in hours
+  urgency?: 'urgent' | 'medium' | 'normal' | 'low';
+  completed?: boolean;
+  dayIndex?: number; // 0=lunes ... 6=domingo
+  order?: number; // ordering within day
   description?: string;
   preferredTime: {
     startHour: number;
@@ -48,6 +55,10 @@ export interface Settings {
   minimumSleepHours: number;
   breakDuration: number; // in minutes
   maximumStudySession: number; // in minutes
+  activeWindow?: {
+    startHour: number; // 0-23
+    endHour: number;   // 0-23
+  };
 }
 
 export interface ScheduleState {

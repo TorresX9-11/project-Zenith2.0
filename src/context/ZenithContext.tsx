@@ -1,6 +1,14 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
 import { scheduleReducer, initialScheduleState } from '../reducers/scheduleReducer';
 import { ActivityType, ScheduleState, ScheduleAction, TimeBlock, Activity } from '../types';
+import { 
+  selectTotalOccupiedMinutes,
+  selectHoursByType,
+  selectNextBlocks,
+  selectPlannedMinutesByDay,
+  selectUnplannedActivitiesByDay,
+  WEEKLY_AVAILABLE_MINUTES
+} from '../selectors/schedule';
 
 interface ZenithContextType {
   state: ScheduleState;
@@ -15,6 +23,12 @@ interface ZenithContextType {
   getActivityDuration: (type: ActivityType) => number;
   getTotalFreeTime: () => number;
   getTotalOccupiedTime: () => number;
+  // Expose selectors
+  selectTotalOccupiedMinutes: () => number;
+  selectHoursByType: (type: ActivityType) => number;
+  selectNextBlocks: (n: number) => TimeBlock[];
+  selectPlannedMinutesByDay: (dayIndex: number) => number;
+  selectUnplannedActivitiesByDay: (dayIndex: number) => ReturnType<typeof selectUnplannedActivitiesByDay>;
 }
 
 const ZenithContext = createContext<ZenithContextType | undefined>(undefined);
@@ -58,31 +72,11 @@ export const ZenithProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Calculate metrics
   const calculateProductivity = (): number => {
-    // Contar bloques de tiempo ocupados con tipos de actividad productiva
-    // Incluye ejercicio y descanso ya que contribuyen al bienestar y rendimiento académico
-    const productiveTime = state.timeBlocks.reduce((total, block) => {
-      if (block.type === 'occupied' && 
-          block.activityType && 
-          ['academic', 'work', 'study', 'exercise', 'rest'].includes(block.activityType)) {
-        const [startHour, startMinute] = block.startTime.split(':').map(Number);
-        const [endHour, endMinute] = block.endTime.split(':').map(Number);
-        
-        const start = startHour + (startMinute / 60);
-        const end = endHour + (endMinute / 60);
-        
-        if (end < start) return total;
-        
-        return total + (end - start);
-      }
-      return total;
-    }, 0);
-
-    // Calculamos la productividad basada en el tiempo disponible real (excluyendo tiempo de sueño)
-    const dailyAvailableHours = 16; // 24 horas - 8 horas de sueño
-    const weeklyAvailableHours = dailyAvailableHours * 7;
-    
-    // La productividad es el porcentaje del tiempo productivo sobre el tiempo disponible
-    return Math.min(Math.round((productiveTime / weeklyAvailableHours) * 100), 100);
+    const productiveTypes: ActivityType[] = ['academic', 'work', 'study', 'exercise', 'rest'];
+    const minutes = productiveTypes
+      .map(t => selectHoursByType(state, t))
+      .reduce((acc, h) => acc + h * 60, 0);
+    return Math.min(Math.round((minutes / WEEKLY_AVAILABLE_MINUTES) * 100), 100);
   };
 
   const getActivityDuration = (type: ActivityType): number => {
@@ -105,41 +99,20 @@ export const ZenithProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }, 0);
   };
   const getTotalFreeTime = (): number => {
-    const dailyAvailableHours = 16; // 24 horas - 8 horas de sueño
-    const totalWeeklyHours = dailyAvailableHours * 7; // 112 horas semanales disponibles
-    const occupiedTime = getTotalOccupiedTime();
-    // Ensure we don't return negative values
-    return Math.max(0, totalWeeklyHours - occupiedTime);
+    const occupiedMinutes = selectTotalOccupiedMinutes(state);
+    const freeMinutes = Math.max(0, WEEKLY_AVAILABLE_MINUTES - occupiedMinutes);
+    return freeMinutes / 60;
   };
   const getTotalOccupiedTime = (): number => {
-    // Sum all occupied time blocks
-    return state.timeBlocks.reduce((total, block) => {
-      if (block.type === 'occupied') {
-        // Parse times to numbers
-        const [startHour, startMinute] = block.startTime.split(':').map(Number);
-        const [endHour, endMinute] = block.endTime.split(':').map(Number);
-        
-        // Si el bloque está en horas de sueño (22:00 - 06:00), no lo contamos
-        if (startHour >= 22 || startHour < 6) {
-          return total;
-        }
-        
-        // Calculate duration in decimal hours
-        const start = startHour + (startMinute / 60);
-        const end = endHour + (endMinute / 60);
-        
-        // Si el bloque cruza la medianoche o el horario de sueño, ajustamos el tiempo
-        if (end < start || end > 22) {
-          // Si termina después de las 22, contamos solo hasta las 22
-          const adjustedEnd = end > 22 ? 22 : end;
-          return total + (adjustedEnd - start);
-        }
-        
-        return total + (end - start);
-      }
-      return total;
-    }, 0);
+    return selectTotalOccupiedMinutes(state) / 60;
   };
+
+  // Memoized selector wrappers for consumers
+  const memoSelectTotalOccupiedMinutes = useMemo(() => () => selectTotalOccupiedMinutes(state), [state]);
+  const memoSelectHoursByType = useMemo(() => (type: ActivityType) => selectHoursByType(state, type), [state]);
+  const memoSelectNextBlocks = useMemo(() => (n: number) => selectNextBlocks(state, n), [state]);
+  const memoSelectPlannedMinutesByDay = useMemo(() => (dayIndex: number) => selectPlannedMinutesByDay(state, dayIndex), [state]);
+  const memoSelectUnplannedActivitiesByDay = useMemo(() => (dayIndex: number) => selectUnplannedActivitiesByDay(state, dayIndex), [state]);
 
   return (
     <ZenithContext.Provider value={{
@@ -154,7 +127,12 @@ export const ZenithProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       calculateProductivity,
       getActivityDuration,
       getTotalFreeTime,
-      getTotalOccupiedTime
+      getTotalOccupiedTime,
+      selectTotalOccupiedMinutes: memoSelectTotalOccupiedMinutes,
+      selectHoursByType: memoSelectHoursByType,
+      selectNextBlocks: memoSelectNextBlocks,
+      selectPlannedMinutesByDay: memoSelectPlannedMinutesByDay,
+      selectUnplannedActivitiesByDay: memoSelectUnplannedActivitiesByDay
     }}>
       {children}
     </ZenithContext.Provider>

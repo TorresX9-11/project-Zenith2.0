@@ -15,7 +15,7 @@ import {
   HelpCircle,
   X
 } from 'lucide-react';
-import TimeTable from '../components/TimeTable';
+// TimeTable se muestra solo en Schedule
 
 interface StudyTechnique {
   name: string;
@@ -70,7 +70,9 @@ const Dashboard: React.FC = () => {
     calculateProductivity,
     getActivityDuration,
     getTotalFreeTime,
-    getTotalOccupiedTime
+    getTotalOccupiedTime,
+    selectHoursByType,
+    selectNextBlocks
   } = useZenith();
   
   const [showHelp, setShowHelp] = React.useState(false);
@@ -91,26 +93,8 @@ const Dashboard: React.FC = () => {
 
   // Función auxiliar para calcular horas totales por tipo
   const getTotalHours = (type: ActivityType): number => {
-    // Para académico y trabajo, sumamos tanto bloques como actividades
-    if (type === 'academic' || type === 'work') {
-      // Suma las horas de los bloques de tiempo fijos
-      const blockHours = state.timeBlocks
-        .filter(block => block.type === 'occupied' && block.activityType === type)
-        .reduce((total, block) => {
-          const [startHour, startMinute] = block.startTime.split(':').map(Number);
-          const [endHour, endMinute] = block.endTime.split(':').map(Number);
-          const start = startHour + (startMinute / 60);
-          const end = endHour + (endMinute / 60);
-          return total + (end >= start ? end - start : (24 - start) + end);
-        }, 0);
-
-      // Suma las horas de las actividades adicionales
-      const activityHours = getActivityDuration(type);
-      return blockHours + activityHours;
-    }
-    
-    // Para el resto de actividades, solo usamos las horas ingresadas por el usuario
-    return getActivityDuration(type);
+    // Dashboard muestra el plan: usar solo bloques planificados
+    return selectHoursByType(type);
   };
 
   // Cálculo de horas por tipo de actividad
@@ -170,14 +154,6 @@ const Dashboard: React.FC = () => {
       bgColor: 'bg-neutral-100',
       icon: <Users size={20} className="text-neutral-600" />,
       label: 'Personal'
-    },
-    {
-      type: 'Libre',
-      hours: totalFreeHours,
-      color: 'bg-red-600',
-      bgColor: 'bg-red-100',
-      icon: <Clock size={20} className="text-red-600" />,
-      label: 'Libre'
     }
   ];
 
@@ -324,46 +300,37 @@ const Dashboard: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Horario Semanal */}
+          {/* Resumen de Agenda (sin timetable) */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Calendar size={20} className="text-primary-600" />
-                <span>Mi Horario Semanal</span>
+                <span>Resumen de Agenda</span>
               </h2>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-neutral-500" />
-                  <span className="text-sm text-neutral-600">
-                    {totalOccupiedHours.toFixed(1)}h ocupadas
-                  </span>
+                  <span className="text-sm text-neutral-600">{totalOccupiedHours.toFixed(1)}h ocupadas</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-success-500" />
-                  <span className="text-sm text-success-600">
-                    {totalFreeHours.toFixed(1)}h libres
-                  </span>
+                  <span className="text-sm text-success-600">{totalFreeHours.toFixed(1)}h libres</span>
                 </div>
               </div>
             </div>
-
-            {/* Leyenda de colores */}
-            <div className="mb-4">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
-                {activityData.map((activity, index) => (
-                  <div key={index} className={`p-2 ${activity.bgColor} rounded-lg flex items-center gap-2`}>
-                    <div className={`w-4 h-4 ${activity.color} rounded-full border-2 border-${activity.color.split('-')[1]}-200`} />
-                    <span className="text-xs">{activity.label}</span>
+            <div className="space-y-2">
+              {selectNextBlocks(5).map(b => (
+                <div key={b.id} className="flex items-center justify-between border border-neutral-200 rounded-md p-3">
+                  <div>
+                    <div className="font-medium">{b.title}</div>
+                    <div className="text-sm text-neutral-600">{b.day} {b.startTime}-{b.endTime}</div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
+              {selectNextBlocks(5).length === 0 && (
+                <div className="text-sm text-neutral-600">No hay próximos bloques en la semana.</div>
+              )}
             </div>
-
-            <TimeTable 
-              timeBlocks={state.timeBlocks}
-              startHour={5}
-              endHour={22}
-            />
           </div>
 
           {/* Distribución de Tiempo y Productividad */}

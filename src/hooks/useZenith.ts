@@ -1,11 +1,4 @@
 import { useContext } from 'react';
-import { ZenithContext } from './ZenithProvider';
-import type { ZenithContextType } from '../types';
+import { useZenith as useZenithFromContext } from '../context/ZenithContext';
 
-export const useZenith = (): ZenithContextType => {
-  const context = useContext(ZenithContext);
-  if (context === undefined) {
-    throw new Error('useZenith must be used within a ZenithProvider');
-  }
-  return context;
-};
+export const useZenith = () => useZenithFromContext();

@@ -41,9 +41,7 @@ const TimeTable: React.FC<TimeTableProps> = ({
   );
 
   const formatHour = (hour: number): string => {
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:00 ${period}`;
+    return `${hour.toString().padStart(2, '0')}:00`;
   };
 
   const getActivityColor = (type: string, activityType?: ActivityType): string => {    if (activityType) {
@@ -53,8 +51,7 @@ const TimeTable: React.FC<TimeTableProps> = ({
         study: 'bg-secondary-100 border-secondary-300 text-secondary-800',        exercise: 'bg-green-100 border-green-200 text-green-800',
         rest: 'bg-accent-100 border-accent-300 text-accent-800',
         social: 'bg-yellow-100 border-yellow-200 text-yellow-800',
-        personal: 'bg-neutral-100 border-neutral-300 text-neutral-800',
-        libre: 'bg-red-100 border-red-200 text-red-800'
+        personal: 'bg-neutral-100 border-neutral-300 text-neutral-800'
       };
       return colors[activityType];
     }
@@ -96,8 +93,7 @@ const TimeTable: React.FC<TimeTableProps> = ({
       exercise: 'Ejercicio',
       rest: 'Descanso',
       social: 'Social',
-      personal: 'Personal',
-      libre: 'Libre'
+      personal: 'Personal'
     };
     return type ? labels[type] : 'Sin clasificar';
   };
@@ -150,6 +146,9 @@ const TimeTable: React.FC<TimeTableProps> = ({
                         <div className="text-xs opacity-75">
                           {slot.startTime} - {slot.endTime}
                         </div>
+                        {slot.completedAt && (
+                          <div className="text-[10px] text-emerald-700">Completado</div>
+                        )}
                       </div>
                       {/* Opciones de edición y eliminación */}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">

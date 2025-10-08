@@ -14,6 +14,10 @@ export const initialScheduleState: ScheduleState = {
     minimumSleepHours: 7,
     breakDuration: 15, // minutes
     maximumStudySession: 120, // minutes
+    activeWindow: {
+      startHour: 5,
+      endHour: 21
+    }
   }
 };
 
@@ -85,6 +89,12 @@ export const scheduleReducer = (state: ScheduleState, action: ScheduleAction): S
         ...action.payload,
         id: action.payload.id || uuidv4()
       };
+      // Ensure default ordering per day for weekly tracker
+      if (typeof newActivity.dayIndex === 'number') {
+        const siblings = state.activities.filter(a => !a.timeBlockId && a.dayIndex === newActivity.dayIndex);
+        const maxOrder = siblings.reduce((max, a) => Math.max(max, a.order ?? 0), -1);
+        newActivity.order = (newActivity.order ?? (maxOrder + 1));
+      }
 
       // Si la actividad tiene preferredTime y preferredDays, crear un bloque de tiempo
       if (newActivity.preferredTime && newActivity.preferredDays?.[0]) {
@@ -135,6 +145,14 @@ export const scheduleReducer = (state: ScheduleState, action: ScheduleAction): S
     case 'UPDATE_ACTIVITY': {
       const updatedActivity = action.payload;
       let updatedTimeBlocks = [...state.timeBlocks];
+      // Ensure ordering remains normalized if dayIndex changes
+      if (typeof updatedActivity.dayIndex === 'number') {
+        const siblings = state.activities.filter(a => a.id !== updatedActivity.id && !a.timeBlockId && a.dayIndex === updatedActivity.dayIndex);
+        if (updatedActivity.order === undefined) {
+          const maxOrder = siblings.reduce((max, a) => Math.max(max, a.order ?? 0), -1);
+          updatedActivity.order = maxOrder + 1;
+        }
+      }
       
       // Si la actividad tiene un bloque de tiempo asociado, actualizarlo
       if (updatedActivity.timeBlockId) {

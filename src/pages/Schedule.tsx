@@ -4,6 +4,7 @@ import { DayOfWeek, TimeBlock } from '../types';
 import { Calendar, Plus, Info, X, Save, HelpCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import TimeTable from '../components/TimeTable';
+import { blocksOverlap } from '../selectors/schedule';
 
 const Schedule: React.FC = () => {
   // Solo mostrar 'academic' y 'work' en el formulario de horario
@@ -42,14 +43,19 @@ const Schedule: React.FC = () => {
   };
   function isRangeTaken(day: string | undefined, start: string | undefined, end: string | undefined, ignoreId?: string) {
     if (!day || !start || !end) return false;
-    const startHour = parseInt(start.split(':')[0], 10);
-    const endHour = parseInt(end.split(':')[0], 10);
+    const tempBlock: TimeBlock = {
+      id: 'temp',
+      day: day as DayOfWeek,
+      startTime: start,
+      endTime: end,
+      type: 'occupied',
+      title: 'temp'
+    };
     return state.timeBlocks.some(block => {
-      if (block.day !== day) return false;
       if (ignoreId && block.id === ignoreId) return false;
-      const blockStart = parseInt(block.startTime.split(':')[0], 10);
-      const blockEnd = parseInt(block.endTime.split(':')[0], 10);
-      return startHour < blockEnd && endHour > blockStart;
+      // Solo validar contra bloques del mismo día o bloques que crucen medianoche desde ese día
+      if (block.day !== tempBlock.day) return false;
+      return blocksOverlap(tempBlock, block);
     });
   }
 
@@ -117,16 +123,44 @@ const Schedule: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    // Recortar a ventana activa si es necesario
+    const startHour = parseInt((editingBlock ? editingBlock.startTime : newBlock.startTime)!.split(':')[0], 10);
+    const endHour = parseInt((editingBlock ? editingBlock.endTime : newBlock.endTime)!.split(':')[0], 10);
+    const startStr = `${String(startHour).padStart(2, '0')}:00`;
+    const endStr = `${String(endHour).padStart(2, '0')}:00`;
+    const windowStart = (state.settings.activeWindow?.startHour ?? 6);
+    const windowEnd = (state.settings.activeWindow?.endHour ?? 22);
+    const clippedStart = Math.max(startHour, windowStart);
+    const clippedEnd = Math.min(endHour, windowEnd);
+    if (clippedEnd <= clippedStart) {
+      alert('El rango seleccionado no es válido dentro de la ventana activa.');
+      return;
+    }
+    const clippedStartStr = `${String(clippedStart).padStart(2, '0')}:00`;
+    const clippedEndStr = `${String(clippedEnd).padStart(2, '0')}:00`;
+
     if (editingBlock) {
-      updateTimeBlock({ ...editingBlock, type: 'occupied' });
+      const updated: TimeBlock = { ...editingBlock, type: 'occupied', startTime: clippedStartStr, endTime: clippedEndStr };
+      if (isRangeTaken(updated.day, updated.startTime, updated.endTime, updated.id)) {
+        alert('Este bloque se solapa con otro. Ajusta el horario.');
+        return;
+      }
+      updateTimeBlock(updated);
       setEditingBlock(null);
     } else {
       if (newBlock.title && newBlock.day && newBlock.startTime && newBlock.endTime) {
-        addTimeBlock({
-          ...newBlock as TimeBlock,
-          id: uuidv4()
-        });
+        const candidate: TimeBlock = {
+          ...(newBlock as TimeBlock),
+          id: uuidv4(),
+          type: 'occupied',
+          startTime: clippedStartStr,
+          endTime: clippedEndStr
+        };
+        if (isRangeTaken(candidate.day, candidate.startTime, candidate.endTime)) {
+          alert('Este bloque se solapa con otro. Ajusta el horario.');
+          return;
+        }
+        addTimeBlock(candidate);
         
         setNewBlock({
           title: '',
