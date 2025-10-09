@@ -10,12 +10,20 @@ Unreleased
 
 - UI/UX
   - `TimeTable`: formato 24h y sin tipo `libre`.
-  - `Dashboard`: elimina `TimeTable`; usa selectores para KPIs y resumen/ próximos bloques.
+  - `Dashboard`: elimina `TimeTable`; usa selectores para KPIs, resumen y próximos bloques.
   - `Activities`: elimina `TimeTable`; nuevo seguidor semanal por columnas con drag & drop, check de completado, urgencia por color, modal de creación/edición y contadores por día.
   - `Schedule`: validaciones por minutos con `blocksOverlap`; recorte automático a ventana activa.
 
+- Dashboard (nueva lógica y visualizaciones)
+  - Base temporal unificada: 112h (05:00–21:00 × 7).
+  - KPIs: Planned Hours, Free Time (%), Academic Hours, Unplanned Backlog (h).
+  - Productividad = 70% Adherence Rate + 30% Completion Progress (pesos configurables).
+  - Gráficos Recharts: Column (horas por tipo) y Pie (proporción por tipo) usando exclusivamente `timeBlocks`.
+  - Se elimina ‘Libre’ de los gráficos.
+
 - Persistencia
   - `initialScheduleState.settings` ahora incluye `activeWindow` y mantiene `localStorage`.
+  - `TimeBlock` extiende `completedAt` para marcar adherencia/avance.
 
 - Notas de migración
   - Si en datos antiguos existían actividades con tipo `libre`, deben migrarse a otro tipo válido o tratarse como tiempo libre derivado (no como actividad).

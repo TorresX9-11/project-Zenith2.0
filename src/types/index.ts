@@ -25,7 +25,7 @@ export interface Activity {
   priority: 'high' | 'medium' | 'low'; // legacy
   // New fields for weekly tracker
   estimatedDuration?: number; // in hours
-  urgency?: 'urgent' | 'medium' | 'normal' | 'low';
+  urgency?: 'very_urgent' | 'urgent' | 'medium' | 'normal' | 'low';
   completed?: boolean;
   dayIndex?: number; // 0=lunes ... 6=domingo
   order?: number; // ordering within day
@@ -58,6 +58,10 @@ export interface Settings {
   activeWindow?: {
     startHour: number; // 0-23
     endHour: number;   // 0-23
+  };
+  productivityWeights?: {
+    adherenceWeight: number; // default 0.7
+    completionWeight: number; // default 0.3
   };
 }
 

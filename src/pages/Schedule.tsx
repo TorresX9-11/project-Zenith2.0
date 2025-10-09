@@ -7,12 +7,19 @@ import TimeTable from '../components/TimeTable';
 import { blocksOverlap } from '../selectors/schedule';
 
 const Schedule: React.FC = () => {
-  // Solo mostrar 'academic' y 'work' en el formulario de horario
+  // Mostrar todos los tipos de actividad disponibles
   const activityTypes = [
-    { value: 'academic', label: 'Académica' },
-    { value: 'work', label: 'Trabajo' }
+    { value: 'academic', label: 'Académico' },
+    { value: 'study', label: 'Estudio' },
+    { value: 'work', label: 'Trabajo' },
+    { value: 'exercise', label: 'Ejercicio' },
+    { value: 'social', label: 'Social' },
+    { value: 'rest', label: 'Descanso' },
+    { value: 'personal', label: 'Personal' }
   ];
   const { state, addTimeBlock, removeTimeBlock, updateTimeBlock } = useZenith();
+  const windowStartHour = state.settings.activeWindow?.startHour ?? 5;
+  const windowEndHour = state.settings.activeWindow?.endHour ?? 21; // exclusive upper bound for selects
   const [showForm, setShowForm] = useState(false);
   const [editingBlock, setEditingBlock] = useState<TimeBlock | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -63,8 +70,8 @@ const Schedule: React.FC = () => {
     const { name, value } = e.target;
     if (name === 'day') {
       const selectedDay = value as DayOfWeek;
-      let firstFreeStart = '08:00';
-      for (let hour = 6; hour <= 22; hour++) {
+      let firstFreeStart = `${String(windowStartHour).padStart(2, '0')}:00`;
+      for (let hour = windowStartHour; hour <= windowEndHour - 1; hour++) {
         const hourStr = hour.toString().padStart(2, '0') + ':00';
         const isTaken = state.timeBlocks.some(block => {
           if (block.day !== selectedDay) return false;
@@ -77,8 +84,8 @@ const Schedule: React.FC = () => {
           break;
         }
       }
-      let firstFreeEnd = '09:00';
-      for (let hour = parseInt(firstFreeStart.split(':')[0], 10) + 1; hour <= 23; hour++) {
+      let firstFreeEnd = `${String(windowStartHour + 1).padStart(2, '0')}:00`;
+      for (let hour = parseInt(firstFreeStart.split(':')[0], 10) + 1; hour <= windowEndHour; hour++) {
         const hourStr = hour.toString().padStart(2, '0') + ':00';
         const isTaken = state.timeBlocks.some(block => {
           if (block.day !== selectedDay) return false;
@@ -123,18 +130,25 @@ const Schedule: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Recortar a ventana activa si es necesario
-    const startHour = parseInt((editingBlock ? editingBlock.startTime : newBlock.startTime)!.split(':')[0], 10);
-    const endHour = parseInt((editingBlock ? editingBlock.endTime : newBlock.endTime)!.split(':')[0], 10);
-    const startStr = `${String(startHour).padStart(2, '0')}:00`;
-    const endStr = `${String(endHour).padStart(2, '0')}:00`;
-    const windowStart = (state.settings.activeWindow?.startHour ?? 6);
-    const windowEnd = (state.settings.activeWindow?.endHour ?? 22);
-    const clippedStart = Math.max(startHour, windowStart);
-    const clippedEnd = Math.min(endHour, windowEnd);
-    if (clippedEnd <= clippedStart) {
-      alert('El rango seleccionado no es válido dentro de la ventana activa.');
+    // Validar y alinear con ventana activa 05-21 (inclusive start, inclusive end for display)
+    const rawStart = parseInt((editingBlock ? editingBlock.startTime : newBlock.startTime)!.split(':')[0], 10);
+    const rawEnd = parseInt((editingBlock ? editingBlock.endTime : newBlock.endTime)!.split(':')[0], 10);
+    const windowStart = (state.settings.activeWindow?.startHour ?? 5);
+    const windowEnd = (state.settings.activeWindow?.endHour ?? 21);
+    if (rawEnd <= rawStart) {
+      alert('La hora de fin debe ser mayor que la hora de inicio.');
       return;
+    }
+    let clippedStart = Math.max(rawStart, windowStart);
+    let clippedEnd = Math.min(rawEnd, windowEnd);
+    if (clippedEnd <= clippedStart) {
+      // Asegurar al menos 1 hora si quedó fuera de ventana
+      clippedStart = windowStart;
+      clippedEnd = Math.min(windowStart + 1, windowEnd);
+      if (clippedEnd <= clippedStart) {
+        alert('El rango seleccionado no es válido dentro de la ventana activa.');
+        return;
+      }
     }
     const clippedStartStr = `${String(clippedStart).padStart(2, '0')}:00`;
     const clippedEndStr = `${String(clippedEnd).padStart(2, '0')}:00`;
@@ -341,7 +355,7 @@ const Schedule: React.FC = () => {
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 >
-                  {Array.from({ length: 17 }, (_, i) => 6 + i).map(hour => {
+                  {Array.from({ length: (windowEndHour - windowStartHour) }, (_, i) => windowStartHour + i).map(hour => {
                     const hourStr = hour.toString().padStart(2, '0') + ':00';
                     const selectedDay = editingBlock ? editingBlock.day : newBlock.day;
                     const isTaken = state.timeBlocks.some(block => {
@@ -371,7 +385,7 @@ const Schedule: React.FC = () => {
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 >
-                  {Array.from({ length: 17 }, (_, i) => 7 + i).map(hour => {
+                  {Array.from({ length: (windowEndHour - windowStartHour) }, (_, i) => windowStartHour + 1 + i).map(hour => {
                     const hourStr = hour.toString().padStart(2, '0') + ':00';
                     const selectedDay = editingBlock ? editingBlock.day : newBlock.day;
                     const isTaken = state.timeBlocks.some(block => {
@@ -485,8 +499,8 @@ const Schedule: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <TimeTable 
             timeBlocks={state.timeBlocks}
-            startHour={5}
-            endHour={22}
+            startHour={windowStartHour}
+            endHour={windowEndHour}
             onSlotClick={handleTimeSlotClick}
             onEditBlock={handleEdit}
             onDeleteBlock={(block) => {

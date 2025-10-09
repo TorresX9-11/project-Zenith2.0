@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { useZenith } from '../context/ZenithContext';
 import { ActivityType, Activity } from '../types';
-import { ListTodo, Plus, BarChart3, Calendar, HelpCircle, X, Link2 } from 'lucide-react';
+import { ListTodo, Plus, BarChart3, Calendar, HelpCircle, X, Link2, Pencil, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 // TimeTable se usa solo en Schedule; aquí usamos selectores
 // ActivityForm no se usa en el nuevo seguidor semanal
 
 const Activities: React.FC = () => {
-  const { state, addActivity, updateActivity, selectUnplannedActivitiesByDay } = useZenith();
+  const { state, addActivity, updateActivity, removeActivity, selectUnplannedActivitiesByDay } = useZenith();
   const [showForm, setShowForm] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -17,19 +17,19 @@ const Activities: React.FC = () => {
 
   const [newActivity, setNewActivity] = useState<Partial<Activity>>({
     name: '',
-    type: 'study',
     description: '',
-    estimatedDuration: 1,
+    type: 'study',
     urgency: 'normal',
     dayIndex: 0,
-    order: 0,
     completed: false,
     preferredDays: [],
     preferredTime: { startHour: 8, endHour: 9 }
   });
 
   const activityTypes: { value: ActivityType; label: string; color: string }[] = [
+    { value: 'academic', label: 'Académico', color: 'bg-primary-100 text-primary-800' },
     { value: 'study', label: 'Estudio', color: 'bg-secondary-100 text-secondary-800' },
+    { value: 'work', label: 'Trabajo', color: 'bg-purple-100 text-purple-800' },
     { value: 'exercise', label: 'Ejercicio', color: 'bg-green-100 text-green-800' },
     { value: 'rest', label: 'Descanso', color: 'bg-accent-100 text-accent-800' },
     { value: 'social', label: 'Social', color: 'bg-yellow-100 text-yellow-800' },
@@ -42,7 +42,7 @@ const Activities: React.FC = () => {
     const { name, value, type } = e.target;
     
     if (type === 'number') {
-      const numValue = parseFloat(value);
+      const numValue = value === '' ? undefined : parseFloat(value);
       if (editingActivity) {
         setEditingActivity({
           ...editingActivity,
@@ -80,21 +80,22 @@ const Activities: React.FC = () => {
   };
 
   // Drag & Drop handlers
-  const onDragStart = (e: React.DragEvent, id: string) => {
-    e.dataTransfer.setData('text/plain', id);
+  const onDragStart = (e: React.DragEvent, id: string, fromDayIndex: number) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ id, fromDayIndex }));
   };
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
   const onDrop = (e: React.DragEvent, dayIndex: number, targetOrder: number) => {
     e.preventDefault();
-    const id = e.dataTransfer.getData('text/plain');
+    let payload: any = null;
+    try { payload = JSON.parse(e.dataTransfer.getData('application/json')); } catch {}
+    const id = payload?.id || e.dataTransfer.getData('text/plain');
     const activity = state.activities.find(a => a.id === id);
     if (!activity) return;
-    if ((activity.dayIndex ?? 0) !== dayIndex) return; // no cross-day moves for now
-
+    const crossDay = (activity.dayIndex ?? 0) !== dayIndex;
     const updatedOrder = Math.max(0, targetOrder);
-    const updated = { ...activity, order: updatedOrder } as Activity;
+    const updated = { ...activity, order: updatedOrder, dayIndex: crossDay ? dayIndex : activity.dayIndex } as Activity;
     updateActivity(updated);
   };
 
@@ -104,24 +105,16 @@ const Activities: React.FC = () => {
     e.preventDefault();
     
     if (editingActivity) {
-      const updatedActivity: Activity = {
-        ...editingActivity, // Mantener la ID y otros campos base
-        id: editingActivity.id,
-        name: newActivity.name || editingActivity.name,
-        type: (newActivity.type as ActivityType) || editingActivity.type,
-        description: newActivity.description ?? editingActivity.description ?? '',
-        estimatedDuration: newActivity.estimatedDuration ?? editingActivity.estimatedDuration,
-        urgency: (newActivity.urgency as any) || editingActivity.urgency || 'normal',
-        dayIndex: typeof newActivity.dayIndex === 'number' ? newActivity.dayIndex : (editingActivity.dayIndex ?? 0),
-        order: typeof newActivity.order === 'number' ? newActivity.order : (editingActivity.order ?? 0),
-        completed: typeof newActivity.completed === 'boolean' ? newActivity.completed : (editingActivity.completed ?? false),
-        preferredDays: [],
-        preferredTime: editingActivity.preferredTime || { startHour: 8, endHour: 9 },
-        duration: editingActivity.duration || 0,
-        timeBlockId: editingActivity.timeBlockId
+      // Usar directamente la actividad en edición actualizada por los controladores
+      const safeActivity: Activity = {
+        ...(editingActivity as Activity),
+        name: editingActivity.name || '',
+        type: (editingActivity.type as ActivityType) || 'study',
+        urgency: (editingActivity.urgency as any) || 'normal',
+        estimatedDuration: (editingActivity.estimatedDuration as number) || 1,
+        dayIndex: (editingActivity.dayIndex as number) ?? 0,
       };
-
-      updateActivity(updatedActivity);
+      updateActivity(safeActivity);
       setEditingActivity(null);
     } else {
       const newActivityId = uuidv4();
@@ -180,6 +173,9 @@ const Activities: React.FC = () => {
 
   const hasActivities = state.activities.length > 0;
 
+  const isEditing = !!editingActivity;
+  const current = (editingActivity as Partial<Activity> | null) || newActivity;
+
   return (
     <div className="fade-in">
       <div className="mb-6">
@@ -204,13 +200,13 @@ const Activities: React.FC = () => {
             </p>
           </div>
           
-          <button 
-            onClick={handleShowForm}
-            className="bg-primary-600 text-white px-3 py-2 sm:px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base w-full sm:w-auto"
-          >
-            <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <button 
+              onClick={handleShowForm}
+              className="bg-primary-600 text-white px-3 py-2 sm:px-4 rounded-md hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base w-full sm:w-auto"
+            >
+              <Plus size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span>Agregar actividad</span>
-          </button>
+            </button>
         </div>
       </div>
 
@@ -274,17 +270,18 @@ const Activities: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Título</label>
-                    <input className="w-full px-3 py-2 border border-neutral-300 rounded-md" name="name" value={newActivity.name || editingActivity?.name || ''} onChange={handleChange} required />
+                    <input className="w-full px-3 py-2 border border-neutral-300 rounded-md" name="name" placeholder="Ingresa el nombre de la actividad" value={current.name ?? ''} onChange={handleChange} required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Tipo</label>
-                    <select name="type" value={newActivity.type || editingActivity?.type || 'study'} onChange={handleChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" required>
+                    <select name="type" value={(current.type ?? 'study') as any} onChange={handleChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" required>
                       {activityTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Urgencia</label>
-                    <select name="urgency" value={(newActivity.urgency || editingActivity?.urgency || 'normal') as any} onChange={handleChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md">
+                    <select name="urgency" value={(current.urgency ?? 'normal') as any} onChange={handleChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" required>
+                      <option value="very_urgent">Muy urgente</option>
                       <option value="urgent">Urgente</option>
                       <option value="medium">Media</option>
                       <option value="normal">Normal</option>
@@ -293,17 +290,24 @@ const Activities: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Duración estimada (h)</label>
-                    <input type="number" min={0} step={0.5} name="estimatedDuration" value={newActivity.estimatedDuration || editingActivity?.estimatedDuration || 1} onChange={handleChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
+                    <input type="number" min={1} step={1} name="estimatedDuration" placeholder="Tiempo estimado" value={(current.estimatedDuration ?? '') as any} onChange={handleChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Día</label>
-                    <select name="dayIndex" value={(newActivity.dayIndex ?? editingActivity?.dayIndex ?? 0) as number} onChange={e => setNewActivity(prev => ({ ...prev, dayIndex: parseInt(e.target.value, 10) }))} className="w-full px-3 py-2 border border-neutral-300 rounded-md">
+                    <select name="dayIndex" value={(current.dayIndex ?? 0) as any} onChange={e => {
+                      const v = parseInt(e.target.value, 10);
+                      if (isEditing) {
+                        setEditingActivity(prev => prev ? { ...prev, dayIndex: v } as Activity : prev);
+                      } else {
+                        setNewActivity(prev => ({ ...prev, dayIndex: v }));
+                      }
+                    }} className="w-full px-3 py-2 border border-neutral-300 rounded-md" required>
                       {dayLabels.map((d, i) => <option key={d} value={i}>{d}</option>)}
                     </select>
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Descripción (opcional)</label>
-                    <textarea name="description" value={newActivity.description || editingActivity?.description || ''} onChange={handleChange} rows={3} className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
+                    <textarea name="description" placeholder="Agrega una breve descripcion" value={current.description || ''} onChange={handleChange} rows={3} className="w-full px-3 py-2 border border-neutral-300 rounded-md" />
                   </div>
                 </div>
                 <div className="flex justify-end gap-3">
@@ -315,36 +319,69 @@ const Activities: React.FC = () => {
           )}
 
           {/* Weekly tracker */}
-          <div className="bg-white rounded-lg shadow-md p-4 mb-6 overflow-x-auto">
-            <div className="grid grid-cols-7 min-w-[900px] gap-3">
+          <div className="bg-white rounded-none shadow-md p-4 mb-6 overflow-x-auto border border-neutral-200">
+            <div className="grid grid-cols-7 min-w-[900px] gap-0">
               {dayLabels.map((label, dayIdx) => {
-                const activities = selectUnplannedActivitiesByDay(dayIdx);
+                const activities = selectUnplannedActivitiesByDay(dayIdx).sort((a, b) => {
+                  const rank = (u?: string) => u === 'very_urgent' ? 0 : u === 'urgent' ? 1 : u === 'medium' ? 2 : u === 'normal' ? 3 : 4;
+                  return rank(a.urgency) - rank(b.urgency);
+                });
                 const completedCount = activities.filter(a => a.completed).length;
-                const urgencyColor = (u?: string) => u === 'urgent' ? 'border-red-300 bg-red-50' : u === 'medium' ? 'border-orange-300 bg-orange-50' : u === 'low' ? 'border-sky-300 bg-sky-50' : 'border-green-300 bg-green-50';
+                const urgencyColor = (u?: string) => u === 'very_urgent' ? 'border-red-500 bg-red-50' : u === 'urgent' ? 'border-red-300 bg-red-50' : u === 'medium' ? 'border-orange-300 bg-orange-50' : u === 'low' ? 'border-sky-300 bg-sky-50' : 'border-green-300 bg-green-50';
                 return (
-                  <div key={label} className="rounded-md border border-neutral-200 p-2" onDragOver={onDragOver} onDrop={(e) => onDrop(e, dayIdx, activities.length)}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-semibold">{label}</div>
+                  <div key={label} className="border-l border-neutral-200 p-3 bg-white first:border-l-0" onDragOver={onDragOver} onDrop={(e) => onDrop(e, dayIdx, activities.length)}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="font-semibold text-primary-700 text-sm sm:text-base">{label}</div>
                       <div className="text-xs text-neutral-500">{completedCount}/{activities.length}</div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-3 border-t border-neutral-200 pt-3">
                       {activities.map((a) => (
                         <div key={a.id}
                           draggable
-                          onDragStart={(e) => onDragStart(e, a.id)}
-                          className={`border ${urgencyColor(a.urgency)} rounded-md p-2 flex items-start gap-2 ${a.completed ? 'opacity-60' : ''}`}
-                          onClick={() => { setEditingActivity(a); setShowForm(true); }}
+                          onDragStart={(e) => onDragStart(e, a.id, dayIdx)}
+                          onDragOver={(e) => e.preventDefault()}
+                          className={`border ${urgencyColor(a.urgency)} rounded-lg p-3 shadow-sm ${a.completed ? 'opacity-60' : ''} flex flex-col`}
                         >
-                          <input type="checkbox" checked={!!a.completed} onChange={(e) => updateActivity({ ...a, completed: e.target.checked }) as any} className="mt-1" onClick={(ev) => ev.stopPropagation()} />
-                          <div className="flex-1 min-w-0">
-                            <div className={`truncate ${a.completed ? 'line-through' : ''}`}>{a.name}</div>
-                            {!!a.description && <div className="text-xs text-neutral-600 truncate">{a.description}</div>}
+                          <div className="grid grid-cols-[18px,1fr] gap-x-2">
+                            <input type="checkbox" checked={!!a.completed} onChange={(e) => updateActivity({ ...a, completed: e.target.checked }) as any} className="mt-0.5" onClick={(ev) => ev.stopPropagation()} />
+                            <div className="min-w-0">
+                              <div className={`text-sm font-semibold leading-snug ${a.completed ? 'line-through' : ''} text-neutral-800 break-words`}>{a.name}</div>
+                            </div>
+                            {!!a.description && (
+                              <div className="col-span-2 text-[12px] text-neutral-600 leading-snug mt-0.5 whitespace-normal break-words">
+                                {a.description}
+                              </div>
+                            )}
+                            <div className={`col-span-2 flex items-center gap-2 ${a.description ? 'mt-2' : 'mt-1'}`}>
+                              <span className={`px-2 py-0.5 rounded text-[11px] ${activityTypes.find(t => t.value === a.type)?.color || 'bg-neutral-100 text-neutral-800'}`}>
+                                {activityTypes.find(t => t.value === a.type)?.label}
+                              </span>
+                              <span className={`text-[11px] ${a.urgency === 'very_urgent' ? 'text-red-800' : a.urgency === 'urgent' ? 'text-red-700' : a.urgency === 'medium' ? 'text-orange-700' : a.urgency === 'low' ? 'text-sky-700' : 'text-green-700' }`}>
+                                {a.urgency === 'very_urgent' ? 'Muy urgente' : a.urgency === 'urgent' ? 'Urgente' : a.urgency === 'medium' ? 'Media' : a.urgency === 'low' ? 'Baja' : 'Normal'}
+                              </span>
+                            </div>
                           </div>
-                          {a.timeBlockId && (
-                            <div title="Planificada" className="text-neutral-400"><Link2 size={16} /></div>
-                          )}
+                          <div className="mt-3 flex items-center justify-end gap-1">
+                            {a.timeBlockId && (
+                              <div title="Planificada" className="text-neutral-400"><Link2 size={16} /></div>
+                            )}
+                            <button title="Editar" className="p-1 text-neutral-500 hover:text-neutral-800" onClick={(e) => { e.stopPropagation(); setEditingActivity(a); setNewActivity(a); setShowForm(true); }}>
+                              <Pencil size={14} />
+                            </button>
+                            <button title="Eliminar" className="p-1 text-red-500 hover:text-red-700" onClick={(e) => { e.stopPropagation(); if (confirm('¿Eliminar esta actividad?')) { removeActivity(a.id); } }}>
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       ))}
+                    </div>
+                    <div className="pt-3">
+                      <button
+                        onClick={() => { setNewActivity(prev => ({ ...prev, dayIndex: dayIdx })); setEditingActivity(null); setShowForm(true); }}
+                        className="w-full text-center text-xs text-primary-700 hover:text-primary-800 py-1 border border-dashed border-primary-200 rounded"
+                      >
+                        <Plus size={14} className="inline mr-1" /> Añadir tarea
+                      </button>
                     </div>
                   </div>
                 );

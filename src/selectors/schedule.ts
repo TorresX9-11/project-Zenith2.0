@@ -122,4 +122,32 @@ export const selectTotalFreeHours = (state: ScheduleState): number => {
   return freeMinutes / 60;
 };
 
+// Adherence & Completion
+export const selectAdherenceRate = (state: ScheduleState): number => {
+  const plannedMinutes = state.timeBlocks
+    .filter(b => b.type === 'occupied')
+    .reduce((sum, b) => sum + selectTotalOccupiedMinutes({ ...state, timeBlocks: [b] } as ScheduleState), 0); // not optimal but correct; small n
+  const completedMinutes = state.timeBlocks
+    .filter(b => b.type === 'occupied' && b.completedAt)
+    .reduce((sum, b) => sum + selectTotalOccupiedMinutes({ ...state, timeBlocks: [b] } as ScheduleState), 0);
+  if (plannedMinutes === 0) return 0;
+  return Math.min(100, Math.round((completedMinutes / plannedMinutes) * 100));
+};
+
+export const selectCompletionProgress = (state: ScheduleState): number => {
+  const totalPlanned = state.timeBlocks.filter(b => b.type === 'occupied').length;
+  const completed = state.timeBlocks.filter(b => b.type === 'occupied' && b.completedAt).length;
+  if (totalPlanned === 0) return 0;
+  return Math.min(100, Math.round((completed / totalPlanned) * 100));
+};
+
+export const selectProductivityScore = (state: ScheduleState): number => {
+  const adherence = selectAdherenceRate(state);
+  const completion = selectCompletionProgress(state);
+  const aw = state.settings.productivityWeights?.adherenceWeight ?? 0.7;
+  const cw = state.settings.productivityWeights?.completionWeight ?? 0.3;
+  const score = (adherence * aw) + (completion * cw);
+  return Math.round(score);
+};
+
 

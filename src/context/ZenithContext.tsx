@@ -7,6 +7,11 @@ import {
   selectNextBlocks,
   selectPlannedMinutesByDay,
   selectUnplannedActivitiesByDay,
+  selectUnplannedActivityHoursByType,
+  selectTotalFreeHours,
+  selectAdherenceRate,
+  selectCompletionProgress,
+  selectProductivityScore,
   WEEKLY_AVAILABLE_MINUTES
 } from '../selectors/schedule';
 
@@ -29,6 +34,11 @@ interface ZenithContextType {
   selectNextBlocks: (n: number) => TimeBlock[];
   selectPlannedMinutesByDay: (dayIndex: number) => number;
   selectUnplannedActivitiesByDay: (dayIndex: number) => ReturnType<typeof selectUnplannedActivitiesByDay>;
+  selectUnplannedActivityHoursByType: (type: ActivityType) => number;
+  selectTotalFreeHours: () => number;
+  selectAdherenceRate: () => number;
+  selectCompletionProgress: () => number;
+  selectProductivityScore: () => number;
 }
 
 const ZenithContext = createContext<ZenithContextType | undefined>(undefined);
@@ -113,6 +123,11 @@ export const ZenithProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const memoSelectNextBlocks = useMemo(() => (n: number) => selectNextBlocks(state, n), [state]);
   const memoSelectPlannedMinutesByDay = useMemo(() => (dayIndex: number) => selectPlannedMinutesByDay(state, dayIndex), [state]);
   const memoSelectUnplannedActivitiesByDay = useMemo(() => (dayIndex: number) => selectUnplannedActivitiesByDay(state, dayIndex), [state]);
+  const memoSelectUnplannedActivityHoursByType = useMemo(() => (type: ActivityType) => selectUnplannedActivityHoursByType(state, type), [state]);
+  const memoSelectTotalFreeHours = useMemo(() => () => selectTotalFreeHours(state), [state]);
+  const memoSelectAdherenceRate = useMemo(() => () => selectAdherenceRate(state), [state]);
+  const memoSelectCompletionProgress = useMemo(() => () => selectCompletionProgress(state), [state]);
+  const memoSelectProductivityScore = useMemo(() => () => selectProductivityScore(state), [state]);
 
   return (
     <ZenithContext.Provider value={{
@@ -132,7 +147,12 @@ export const ZenithProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       selectHoursByType: memoSelectHoursByType,
       selectNextBlocks: memoSelectNextBlocks,
       selectPlannedMinutesByDay: memoSelectPlannedMinutesByDay,
-      selectUnplannedActivitiesByDay: memoSelectUnplannedActivitiesByDay
+      selectUnplannedActivitiesByDay: memoSelectUnplannedActivitiesByDay,
+      selectUnplannedActivityHoursByType: memoSelectUnplannedActivityHoursByType,
+      selectTotalFreeHours: memoSelectTotalFreeHours,
+      selectAdherenceRate: memoSelectAdherenceRate,
+      selectCompletionProgress: memoSelectCompletionProgress,
+      selectProductivityScore: memoSelectProductivityScore
     }}>
       {children}
     </ZenithContext.Provider>

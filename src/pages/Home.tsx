@@ -171,8 +171,8 @@ const Home: React.FC = () => {
           description="Visualiza métricas de productividad y balance en tu distribución de tiempo."
           linkTo="/dashboard"
           linkText="Ver Dashboard"
-          status="Disponible"
-          statusColor="text-success-500"
+          status={hasSchedule ? 'Disponible' : 'No disponible'}
+          statusColor={hasSchedule ? 'text-success-500' : 'text-warning-500'}
         />
       </section>
       

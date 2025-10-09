@@ -17,6 +17,10 @@ export const initialScheduleState: ScheduleState = {
     activeWindow: {
       startHour: 5,
       endHour: 21
+    },
+    productivityWeights: {
+      adherenceWeight: 0.7,
+      completionWeight: 0.3
     }
   }
 };

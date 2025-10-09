@@ -25,8 +25,8 @@ const teamMembers: TeamMember[] = [
   },
   {
     name: "Gabriel Ramirez",
-    role: "Diseñador",
-    description: "Creativo y detallista, enfocado en la estética y funcionalidad de la aplicación.",
+    role: "Diseñador UI/UX y Frontend",
+    description: "Creativo y detallista, enfocado en la estética y funcionalidad lógica de la aplicación.",
     imageUrl: "/src/pages/assetsImg/imgPerfil/GabrielRamirez/imgPerfil.jpg"
   }
 ];
