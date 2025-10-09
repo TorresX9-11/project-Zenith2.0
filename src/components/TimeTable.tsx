@@ -6,7 +6,7 @@ interface TimeTableProps {
   timeBlocks: TimeBlock[];
   startHour?: number;
   endHour?: number;
-  onSlotClick?: (day: DayOfWeek, hour: number) => void;
+  onSlotClick?: (day: DayOfWeek, hour: number, minute?: number) => void;
   onEditBlock?: (block: TimeBlock) => void;
   onDeleteBlock?: (block: TimeBlock) => void;
 }
@@ -35,13 +35,16 @@ const TimeTable: React.FC<TimeTableProps> = ({
     domingo: 'Domingo'
   };
 
-  const hours = Array.from(
-    { length: endHour - startHour },
-    (_, i) => startHour + i
-  );
+  const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
+  const rowHeight = 88; // px per hour row (más alto para evitar solapamiento visual)
+  const pxPerMinute = rowHeight / 60;
+  const totalHeight = (endHour - startHour) * rowHeight;
 
-  const formatHour = (hour: number): string => {
-    return `${hour.toString().padStart(2, '0')}:00`;
+  const formatHourRange = (hour: number): string => {
+    const start = `${hour.toString().padStart(2, '0')}:00`;
+    const next = (hour + 1) % 24;
+    const end = `${next.toString().padStart(2, '0')}:00`;
+    return `${start} - ${end}`;
   };
 
   const getActivityColor = (type: string, activityType?: ActivityType): string => {    if (activityType) {
@@ -116,103 +119,66 @@ const TimeTable: React.FC<TimeTableProps> = ({
           ))}
         </div>
 
-        {/* Horario */}
-        <div className="space-y-1">
-          {/* Bloques de hora */}
-          {hours.map(hour => (
-            <div key={hour} className="grid grid-cols-8 gap-1 h-16"> {/* Aumenté la altura para más contenido */}
-              {/* Columna de hora */}
-              <div className="flex items-center justify-center text-sm text-neutral-600">
-                {formatHour(hour)}
-              </div>
-              
-              {/* Celdas para cada día */}
-              {days.map(day => {
-                const slot = isSlotOccupied(day, hour);
-                
-                // Si hay slot y acciones de edición/eliminación, renderizar como <div> para evitar <button> anidados
-                if (slot && (onEditBlock || onDeleteBlock)) {
-                  return (
-                    <div
-                      key={day}
-                      className={`rounded-md border transition-colors relative overflow-hidden group cursor-pointer ${getActivityColor(slot.type, slot.activityType)} hover:opacity-90`}
-                      onMouseEnter={(e) => handleMouseEnter(slot, e)}
-                      onMouseLeave={handleMouseLeave}
-                    >
-                      <div className="absolute inset-0 p-2 flex flex-col justify-between h-full">
-                        <div>
-                          <div className="text-sm font-medium truncate">{slot.title}</div>
+        {/* Horario: columna de horas + columnas por día con líneas suaves */}
+        <div className="grid grid-cols-8 gap-1">
+          {/* Rail de horas */}
+          <div className="relative">
+            <div style={{ height: `${totalHeight}px` }} className="relative">
+              {hours.map(hour => (
+                <div key={hour} style={{ height: `${rowHeight}px` }} className="flex items-center justify-center text-xs sm:text-sm text-neutral-600">
+                  {formatHourRange(hour)}
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Columnas de días */}
+          {days.map(day => {
+            const dayBlocks = getBlocksForDay(timeBlocks, day, startHour, endHour, pxPerMinute);
+            const minorStep = 15 * pxPerMinute;
+            const bgLines = `repeating-linear-gradient(to bottom, rgba(0,0,0,0.08) 0, rgba(0,0,0,0.08) 1px, transparent 1px, transparent ${minorStep}px), repeating-linear-gradient(to bottom, rgba(0,0,0,0.08) 0, rgba(0,0,0,0.08) 1px, transparent 1px, transparent ${rowHeight}px)`;
+            return (
+              <div key={day} className="relative rounded-none border bg-white border-neutral-200 overflow-hidden" style={{ height: `${totalHeight}px`, backgroundImage: bgLines }}>
+                {dayBlocks.map(b => (
+                  <div key={b.id}
+                    className={`absolute left-0 right-0 mx-1 my-0.5 rounded-none ${getActivityColor('occupied', b.activityType)} shadow-sm border cursor-pointer group z-10`}
+                    style={{ top: `${b.top}px`, height: `${b.height}px` }}
+                    onMouseEnter={(e) => handleMouseEnter(b as any, e)}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    <div className="px-2 py-1 text-[11px] leading-tight h-full flex flex-col">
+                      <div className="font-semibold truncate text-neutral-800">{b.title}</div>
+                      {b.description && <div className="text-[11px] text-neutral-600 mt-0.5 whitespace-normal break-words line-clamp-2">{b.description}</div>}
+                      <div className="mt-auto flex items-center justify-between pt-1">
+                        <div className="text-[11px] opacity-75">{b.startTime} - {b.endTime}</div>
+                        <div className="flex items-center gap-1">
+                          {onEditBlock && (
+                            <button title="Editar" className="p-1 text-neutral-700 hover:text-neutral-900 bg-white/70 rounded" onClick={(e) => { e.stopPropagation(); onEditBlock(b as any); }}>
+                              <Edit size={12} />
+                            </button>
+                          )}
+                          {onDeleteBlock && (
+                            <button title="Eliminar" className="p-1 text-red-600 hover:text-red-700 bg-white/70 rounded" onClick={(e) => { e.stopPropagation(); onDeleteBlock(b as any); }}>
+                              <Trash2 size={12} />
+                            </button>
+                          )}
                         </div>
-                        <div className="text-xs opacity-75">
-                          {slot.startTime} - {slot.endTime}
-                        </div>
-                        {slot.completedAt && (
-                          <div className="text-[10px] text-emerald-700">Completado</div>
-                        )}
-                      </div>
-                      {/* Opciones de edición y eliminación */}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        {onEditBlock && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEditBlock(slot);
-                            }}
-                            className="p-1 bg-white text-neutral-700 rounded-full hover:bg-neutral-100"
-                            title="Editar"
-                          >
-                            <Edit size={16} />
-                          </button>
-                        )}
-                        {onDeleteBlock && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteBlock(slot);
-                            }}
-                            className="p-1 bg-white text-error-600 rounded-full hover:bg-error-50"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
                       </div>
                     </div>
-                  );
-                } else {
-                  // Celda libre o solo clic para agregar
+                  </div>
+                ))}
+                {/* Áreas clicables por cuartos en toda la columna */}
+                {Array.from({ length: (endHour - startHour) * 4 }, (_, i) => i).map(i => {
+                  const minutesFromStart = i * 15;
+                  const top = minutesFromStart * pxPerMinute;
+                  const hour = Math.floor(minutesFromStart / 60) + startHour;
+                  const minute = minutesFromStart % 60;
                   return (
-                    <button
-                      key={day}
-                      onClick={() => {
-                        onSlotClick?.(day, hour);
-                      }}
-                      onMouseEnter={slot ? (e) => handleMouseEnter(slot, e) : undefined}
-                      onMouseLeave={slot ? handleMouseLeave : undefined}
-                      className={`rounded-md border transition-colors relative overflow-hidden group ${
-                        slot
-                          ? `${getActivityColor(slot.type, slot.activityType)} hover:opacity-90`
-                          : 'bg-white border-neutral-200 hover:bg-neutral-50'
-                      }`}
-                    >
-                      {slot && (
-                        <>
-                          <div className="absolute inset-0 p-2 flex flex-col justify-between h-full">
-                            <div>
-                              <div className="text-sm font-medium truncate">{slot.title}</div>
-                            </div>
-                            <div className="text-xs opacity-75">
-                              {slot.startTime} - {slot.endTime}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </button>
+                    <button key={i} className="absolute left-0 right-0" style={{ top: `${top}px`, height: `${15 * pxPerMinute}px` }} onClick={() => onSlotClick?.(day, hour, minute)} />
                   );
-                }
-              })}
-            </div>
-          ))}
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
       
@@ -251,11 +217,7 @@ const TimeTable: React.FC<TimeTableProps> = ({
               </div>
             )}
             
-            {hoveredSlot.description && (
-              <div className="text-sm text-neutral-600 pt-1 border-t border-neutral-100">
-                <p className="line-clamp-2">{hoveredSlot.description}</p>
-              </div>
-            )}
+            {/* Descripción se muestra solo en el bloque, no en tooltip */}
           </div>
         </div>
       )}
@@ -264,3 +226,53 @@ const TimeTable: React.FC<TimeTableProps> = ({
 };
 
 export default TimeTable;
+
+function getBlocksForCell(blocks: TimeBlock[], day: DayOfWeek, hour: number, rowHeight: number, pxPerMinute: number) {
+  const cellStart = hour * 60;
+  const cellEnd = (hour + 1) * 60;
+  return blocks
+    .filter(b => b.day === day)
+    .map(b => ({
+      ...b,
+      s: parseInt(b.startTime.split(':')[0]) * 60 + parseInt(b.startTime.split(':')[1] || '0'),
+      e: parseInt(b.endTime.split(':')[0]) * 60 + parseInt(b.endTime.split(':')[1] || '0')
+    }))
+    .filter(b => b.e > cellStart && b.s < cellEnd)
+    .map(b => {
+      const topMin = Math.max(0, b.s - cellStart);
+      const bottomMin = Math.max(0, Math.min(cellEnd, b.e) - cellStart);
+      return {
+        ...b,
+        top: topMin * pxPerMinute,
+        height: Math.max(2, (bottomMin - topMin) * pxPerMinute)
+      };
+    });
+}
+
+function getBlocksForDay(
+  blocks: TimeBlock[],
+  day: DayOfWeek,
+  startHour: number,
+  endHour: number,
+  pxPerMinute: number
+) {
+  const colStart = startHour * 60;
+  const colEnd = endHour * 60;
+  return blocks
+    .filter(b => b.day === day)
+    .map(b => ({
+      ...b,
+      s: parseInt(b.startTime.split(':')[0]) * 60 + parseInt(b.startTime.split(':')[1] || '0'),
+      e: parseInt(b.endTime.split(':')[0]) * 60 + parseInt(b.endTime.split(':')[1] || '0')
+    }))
+    .filter(b => b.e > colStart && b.s < colEnd)
+    .map(b => {
+      const topMin = Math.max(0, b.s - colStart);
+      const bottomMin = Math.max(0, Math.min(colEnd, b.e) - colStart);
+      return {
+        ...b,
+        top: topMin * pxPerMinute,
+        height: Math.max(2, (bottomMin - topMin) * pxPerMinute)
+      };
+    });
+}

@@ -297,13 +297,13 @@ const Dashboard: React.FC = () => {
                     <div className="font-medium">{b.title}</div>
                     <div className="text-sm text-neutral-600">{b.day} {b.startTime}-{b.endTime}</div>
                   </div>
-                </div>
-              ))}
+                  </div>
+                ))}
               {selectNextBlocks(5).length === 0 && (
                 <div className="text-sm text-neutral-600">No hay próximos bloques en la semana.</div>
               )}
+              </div>
             </div>
-          </div>
 
           {/* KPIs principales */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -330,8 +330,8 @@ const Dashboard: React.FC = () => {
                     <div className="bg-neutral-50 rounded-md p-4 border border-neutral-200">
                       <div className="text-xs text-neutral-500 mb-1">Unplanned Backlog</div>
                       <div className="text-2xl font-bold">{unplannedBacklogHours.toFixed(1)}h</div>
-                    </div>
-                  </div>
+                          </div>
+                        </div>
                 </div>
               </div>
             </div>

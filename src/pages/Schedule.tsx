@@ -20,6 +20,23 @@ const Schedule: React.FC = () => {
   const { state, addTimeBlock, removeTimeBlock, updateTimeBlock } = useZenith();
   const windowStartHour = state.settings.activeWindow?.startHour ?? 5;
   const windowEndHour = state.settings.activeWindow?.endHour ?? 21; // exclusive upper bound for selects
+
+  const toMinutes = (hhmm: string): number => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + (m || 0);
+  };
+  const minutesToHHMM = (min: number): string => {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  };
+  const generateQuarterOptions = (startH: number, endH: number): string[] => {
+    const opts: string[] = [];
+    for (let t = startH * 60; t <= endH * 60; t += 15) {
+      opts.push(minutesToHHMM(t));
+    }
+    return opts;
+  };
   const [showForm, setShowForm] = useState(false);
   const [editingBlock, setEditingBlock] = useState<TimeBlock | null>(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -70,34 +87,18 @@ const Schedule: React.FC = () => {
     const { name, value } = e.target;
     if (name === 'day') {
       const selectedDay = value as DayOfWeek;
-      let firstFreeStart = `${String(windowStartHour).padStart(2, '0')}:00`;
-      for (let hour = windowStartHour; hour <= windowEndHour - 1; hour++) {
-        const hourStr = hour.toString().padStart(2, '0') + ':00';
+      // Buscar primer cuarto libre y proponer 1h por defecto
+      let firstFreeStart = minutesToHHMM(windowStartHour * 60);
+      for (let t = windowStartHour * 60; t <= (windowEndHour - 1) * 60; t += 15) {
         const isTaken = state.timeBlocks.some(block => {
           if (block.day !== selectedDay) return false;
-          const blockStart = parseInt(block.startTime.split(':')[0], 10);
-          const blockEnd = parseInt(block.endTime.split(':')[0], 10);
-          return hour >= blockStart && hour < blockEnd;
+          const bS = toMinutes(block.startTime);
+          const bE = toMinutes(block.endTime);
+          return t >= bS && t < bE;
         });
-        if (!isTaken) {
-          firstFreeStart = hourStr;
-          break;
-        }
+        if (!isTaken) { firstFreeStart = minutesToHHMM(t); break; }
       }
-      let firstFreeEnd = `${String(windowStartHour + 1).padStart(2, '0')}:00`;
-      for (let hour = parseInt(firstFreeStart.split(':')[0], 10) + 1; hour <= windowEndHour; hour++) {
-        const hourStr = hour.toString().padStart(2, '0') + ':00';
-        const isTaken = state.timeBlocks.some(block => {
-          if (block.day !== selectedDay) return false;
-          const blockStart = parseInt(block.startTime.split(':')[0], 10);
-          const blockEnd = parseInt(block.endTime.split(':')[0], 10);
-          return hour > blockStart && hour <= blockEnd;
-        });
-        if (!isTaken) {
-          firstFreeEnd = hourStr;
-          break;
-        }
-      }
+      let firstFreeEnd = minutesToHHMM(Math.min(toMinutes(firstFreeStart) + 60, windowEndHour * 60));
       if (editingBlock) {
         setEditingBlock({
           ...editingBlock,
@@ -130,28 +131,30 @@ const Schedule: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Validar y alinear con ventana activa 05-21 (inclusive start, inclusive end for display)
-    const rawStart = parseInt((editingBlock ? editingBlock.startTime : newBlock.startTime)!.split(':')[0], 10);
-    const rawEnd = parseInt((editingBlock ? editingBlock.endTime : newBlock.endTime)!.split(':')[0], 10);
-    const windowStart = (state.settings.activeWindow?.startHour ?? 5);
-    const windowEnd = (state.settings.activeWindow?.endHour ?? 21);
-    if (rawEnd <= rawStart) {
+    // Validar y alinear con ventana activa (usar minutos, no redondear a horas)
+    const startStrIn = (editingBlock ? editingBlock.startTime : newBlock.startTime)!;
+    const endStrIn = (editingBlock ? editingBlock.endTime : newBlock.endTime)!;
+    const rawStartMin = toMinutes(startStrIn);
+    const rawEndMin = toMinutes(endStrIn);
+    const windowStartMin = (state.settings.activeWindow?.startHour ?? 5) * 60;
+    const windowEndMin = (state.settings.activeWindow?.endHour ?? 21) * 60;
+    if (rawEndMin <= rawStartMin) {
       alert('La hora de fin debe ser mayor que la hora de inicio.');
       return;
     }
-    let clippedStart = Math.max(rawStart, windowStart);
-    let clippedEnd = Math.min(rawEnd, windowEnd);
-    if (clippedEnd <= clippedStart) {
+    let clippedStartMin = Math.max(rawStartMin, windowStartMin);
+    let clippedEndMin = Math.min(rawEndMin, windowEndMin);
+    if (clippedEndMin <= clippedStartMin) {
       // Asegurar al menos 1 hora si quedó fuera de ventana
-      clippedStart = windowStart;
-      clippedEnd = Math.min(windowStart + 1, windowEnd);
-      if (clippedEnd <= clippedStart) {
+      clippedStartMin = windowStartMin;
+      clippedEndMin = Math.min(windowStartMin + 60, windowEndMin);
+      if (clippedEndMin <= clippedStartMin) {
         alert('El rango seleccionado no es válido dentro de la ventana activa.');
         return;
       }
     }
-    const clippedStartStr = `${String(clippedStart).padStart(2, '0')}:00`;
-    const clippedEndStr = `${String(clippedEnd).padStart(2, '0')}:00`;
+    const clippedStartStr = minutesToHHMM(clippedStartMin);
+    const clippedEndStr = minutesToHHMM(clippedEndMin);
 
     if (editingBlock) {
       const updated: TimeBlock = { ...editingBlock, type: 'occupied', startTime: clippedStartStr, endTime: clippedEndStr };
@@ -199,13 +202,13 @@ const Schedule: React.FC = () => {
     }, 100);
   };
 
-  const handleTimeSlotClick = (day: DayOfWeek, hour: number) => {
+  const handleTimeSlotClick = (day: DayOfWeek, hour: number, minute: number = 0) => {
     if (!showForm) {
       setNewBlock({
         ...newBlock,
         day,
-        startTime: `${hour.toString().padStart(2, '0')}:00`,
-        endTime: `${(hour + 1).toString().padStart(2, '0')}:00`,
+        startTime: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+        endTime: `${(minute + 60) >= 60 ? (hour + 1).toString().padStart(2, '0') : hour.toString().padStart(2, '0')}:${((minute + 60) % 60).toString().padStart(2, '0')}`,
         activityType: 'academic' // Tipo por defecto para nuevos bloques
       });
       handleShowForm();
@@ -355,15 +358,15 @@ const Schedule: React.FC = () => {
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 >
-                  {Array.from({ length: (windowEndHour - windowStartHour) }, (_, i) => windowStartHour + i).map(hour => {
-                    const hourStr = hour.toString().padStart(2, '0') + ':00';
+                  {generateQuarterOptions(windowStartHour, windowEndHour).slice(0, -1).map(hourStr => {
                     const selectedDay = editingBlock ? editingBlock.day : newBlock.day;
+                    const candidate = toMinutes(hourStr);
                     const isTaken = state.timeBlocks.some(block => {
                       if (block.day !== selectedDay) return false;
                       if (editingBlock && block.id === editingBlock.id) return false;
-                      const blockStart = parseInt(block.startTime.split(':')[0], 10);
-                      const blockEnd = parseInt(block.endTime.split(':')[0], 10);
-                      return hour >= blockStart && hour < blockEnd;
+                      const bS = toMinutes(block.startTime);
+                      const bE = toMinutes(block.endTime);
+                      return candidate >= bS && candidate < bE;
                     });
                     return (
                       <option key={hourStr} value={hourStr} disabled={isTaken}>
@@ -385,15 +388,15 @@ const Schedule: React.FC = () => {
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 >
-                  {Array.from({ length: (windowEndHour - windowStartHour) }, (_, i) => windowStartHour + 1 + i).map(hour => {
-                    const hourStr = hour.toString().padStart(2, '0') + ':00';
+                  {generateQuarterOptions(windowStartHour, windowEndHour).slice(1).map(hourStr => {
                     const selectedDay = editingBlock ? editingBlock.day : newBlock.day;
+                    const candidate = toMinutes(hourStr);
                     const isTaken = state.timeBlocks.some(block => {
                       if (block.day !== selectedDay) return false;
                       if (editingBlock && block.id === editingBlock.id) return false;
-                      const blockStart = parseInt(block.startTime.split(':')[0], 10);
-                      const blockEnd = parseInt(block.endTime.split(':')[0], 10);
-                      return hour > blockStart && hour <= blockEnd;
+                      const bS = toMinutes(block.startTime);
+                      const bE = toMinutes(block.endTime);
+                      return candidate > bS && candidate <= bE;
                     });
                     return (
                       <option key={hourStr} value={hourStr} disabled={isTaken}>
@@ -456,7 +459,21 @@ const Schedule: React.FC = () => {
               </div>
             </div>
             
-            {/* Campo descripción eliminado por requerimiento */}
+              {/* Descripción opcional */}
+              <div className="mb-4">
+                <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-1">
+                  Descripción (opcional)
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={editingBlock ? (editingBlock.description || '') : (newBlock.description || '')}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="Agrega una breve descripción"
+                />
+              </div>
             
             <div className="flex justify-end gap-3">
               <button
