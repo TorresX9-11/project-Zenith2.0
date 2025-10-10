@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useZenith } from '../context/ZenithContext';
 import { ActivityType, Activity } from '../types';
 import { ListTodo, Plus, BarChart3, Calendar, HelpCircle, X, Link2, Pencil, Trash2 } from 'lucide-react';
@@ -14,6 +14,8 @@ const Activities: React.FC = () => {
   const formRef = useRef<HTMLDivElement>(null);
   const activityGroupsRef = useRef<HTMLDivElement>(null);
   const lastAddedActivityRef = useRef<string | null>(null);
+  const [durationHours, setDurationHours] = useState<number>(0);
+  const [durationMinutesOnly, setDurationMinutesOnly] = useState<number>(0);
 
   const [newActivity, setNewActivity] = useState<Partial<Activity>>({
     name: '',
@@ -70,6 +72,19 @@ const Activities: React.FC = () => {
   };
 
   // preferredDays ya no se usa en el seguidor sin horas
+  // Prellenar horas/min al abrir formulario o al editar
+  useEffect(() => {
+    if (showForm || editingActivity) {
+      const src: Partial<Activity> = (editingActivity as Partial<Activity>) || newActivity;
+      const totalMinutes = (src as any).estimatedMinutes !== undefined && (src as any).estimatedMinutes !== null
+        ? Number((src as any).estimatedMinutes)
+        : Math.round(((src.estimatedDuration as number) || 0) * 60);
+      const h = Math.floor((Number.isFinite(totalMinutes) ? totalMinutes : 0) / 60);
+      const m = (Number.isFinite(totalMinutes) ? totalMinutes : 0) % 60;
+      setDurationHours(h);
+      setDurationMinutesOnly(m);
+    }
+  }, [showForm, editingActivity]);
 
   const handleShowForm = () => {
     setShowForm(true);
@@ -105,22 +120,25 @@ const Activities: React.FC = () => {
     e.preventDefault();
     
     if (editingActivity) {
+      const safeEstimatedMinutes = Math.max(0, durationHours * 60 + durationMinutesOnly);
       // Usar directamente la actividad en edición actualizada por los controladores
       const safeActivity: Activity = {
         ...(editingActivity as Activity),
         name: editingActivity.name || '',
         type: (editingActivity.type as ActivityType) || 'study',
         urgency: (editingActivity.urgency as any) || 'normal',
-        estimatedDuration: (editingActivity.estimatedDuration as number) || 1,
+        estimatedMinutes: safeEstimatedMinutes,
         dayIndex: (editingActivity.dayIndex as number) ?? 0,
       };
       updateActivity(safeActivity);
       setEditingActivity(null);
     } else {
       const newActivityId = uuidv4();
+      const safeEstimatedMinutes = Math.max(0, durationHours * 60 + durationMinutesOnly);
       addActivity({
         ...newActivity,
-        id: newActivityId
+        id: newActivityId,
+        estimatedMinutes: safeEstimatedMinutes
       } as Activity);
       
       // Guardar el ID de la última actividad agregada
@@ -155,7 +173,7 @@ const Activities: React.FC = () => {
       name: '',
       type: 'study',
       description: '',
-      estimatedDuration: 1,
+      estimatedMinutes: 0,
       urgency: 'normal',
       dayIndex: 0,
       order: 0,
@@ -163,6 +181,8 @@ const Activities: React.FC = () => {
       preferredDays: [],
       preferredTime: { startHour: 8, endHour: 9 }
     });
+    setDurationHours(0);
+    setDurationMinutesOnly(0);
     setShowForm(false);
   };
   const handleCancel = () => {
@@ -212,12 +232,12 @@ const Activities: React.FC = () => {
 
       {/* Modal de ayuda */}
       {showHelp && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowHelp(false)}>
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-neutral-200">
               <div className="flex items-center gap-3">
                 <HelpCircle size={24} className="text-secondary-600" />
-                <h2 className="text-xl font-semibold text-secondary-800">Centro de Actividades</h2>
+                <h2 className="text-xl font-semibold text-secondary-800">¿Cómo funcionan las Actividades?</h2>
               </div>
               <button 
                 onClick={() => setShowHelp(false)}
@@ -229,19 +249,14 @@ const Activities: React.FC = () => {
             
             <div className="p-6">
               <div className="text-neutral-700 space-y-4">
-                <p>Gestiona tus actividades y tareas de forma efectiva. Aquí puedes:</p>
+                <p className="text-sm">Organiza tus tareas por día y prioridad:</p>
                 <ul className="list-disc list-inside ml-4 space-y-2 text-sm">
-                  <li>Crear y organizar actividades académicas, laborales y personales</li>
-                  <li>Establecer prioridades y fechas límite</li>
-                  <li>Eliminar actividades que ya no necesites</li>
-                  <li>Visualizar estadísticas de tu distribución de tiempo</li>
-                  <li>Recibir recomendaciones personalizadas del sistema</li>
+                  <li><strong>Agregar/Editar</strong>: usa el formulario. Define el <em>tipo</em> (académico, estudio, ejercicio, descanso, etc.) y la <em>urgencia</em>.</li>
+                  <li><strong>Drag & Drop</strong>: arrastra para reordenar o mover a otro día.</li>
+                  <li><strong>Completar</strong>: marca el checkbox cuando termines.</li>
+                  <li><strong>Importancia</strong>: las tareas <em>muy urgentes/urgentes</em> pesan más que las de urgencia media o baja, y el tipo de actividad <em>académico/estudio</em> aporta más que <em>personal/social</em> en la productividad final.</li>
                 </ul>
-                <div className="p-4 bg-accent-50 border border-accent-100 rounded-md">
-                  <p className="text-sm text-accent-700">
-                    <strong>Nota importante:</strong> Para editar una actividad, ve a la sección de "Horario Semanal" donde podrás modificar todos los detalles de tus actividades programadas.
-                  </p>
-                </div>
+                
               </div>
             </div>
           </div>
@@ -289,8 +304,31 @@ const Activities: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">Duración estimada (h)</label>
-                    <input type="number" min={1} step={1} name="estimatedDuration" placeholder="Tiempo estimado" value={(current.estimatedDuration ?? '') as any} onChange={handleChange} className="w-full px-3 py-2 border border-neutral-300 rounded-md" required />
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Duración estimada</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        placeholder="Horas"
+                        value={durationHours}
+                        onChange={(e) => setDurationHours(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-md"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        max={59}
+                        step={1}
+                        placeholder="Minutos"
+                        value={durationMinutesOnly}
+                        onChange={(e) => {
+                          const v = Math.max(0, Math.min(59, Math.floor(Number(e.target.value) || 0)));
+                          setDurationMinutesOnly(v);
+                        }}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-md"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">Día</label>

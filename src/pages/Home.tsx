@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, ListTodo, BarChart3, ArrowRight, Clock, Brain, BookOpen, Trophy, AlertTriangle, X, Info } from 'lucide-react';
+import { Calendar, ArrowRight, Clock, Trophy, AlertTriangle, X, Info } from 'lucide-react';
 import { useZenith } from '../context/ZenithContext';
 
 const Home: React.FC = () => {
-  const { state, calculateProductivity, getTotalFreeTime, getTotalOccupiedTime } = useZenith();
+  const { state, getTotalFreeTime, getTotalOccupiedTime, selectProductivityScore, selectAdherenceRate, selectCompletionProgress } = useZenith();
   const [showWarning, setShowWarning] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const hasSchedule = state.timeBlocks.length > 0;
-  const hasActivities = state.activities.length > 0;
+  // const hasActivities = state.activities.length > 0;
 
   // Verificar si es la primera vez que el usuario visita la página
   useEffect(() => {
@@ -138,97 +138,75 @@ const Home: React.FC = () => {
                 <Trophy size={20} />
                 <h3 className="font-semibold">Productividad</h3>
               </div>
-              <p className="text-2xl font-bold">{calculateProductivity()}%</p>
+              <p className="text-2xl font-bold">{selectProductivityScore()}%</p>
+              <p className="text-sm opacity-80 mt-1">Adherencia {selectAdherenceRate()}% · Finalización {selectCompletionProgress()}%</p>
             </div>
           </div>
         )}
       </section>
       
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <FeatureCard 
-          icon={<Calendar className="text-primary-500" size={24} />}
-          title="Gestiona tu Horario"
-          description="Ingresa tus clases y actividades para visualizar tu semana completa."
-          linkTo="/horario"
-          linkText="Ir al Horario"
-          status={hasSchedule ? 'Horario configurado' : 'Pendiente'}
-          statusColor={hasSchedule ? 'text-success-500' : 'text-warning-500'}
-        />
-        
-        <FeatureCard 
-          icon={<ListTodo className="text-secondary-500" size={24} />}
-          title="Planifica Actividades"
-          description="Agrega actividades de estudio, ejercicio y descanso en tus tiempos libres."
-          linkTo="/actividades"
-          linkText="Gestionar Actividades"
-          status={hasActivities ? `${state.activities.length} actividades` : 'Sin actividades'}
-          statusColor={hasActivities ? 'text-success-500' : 'text-warning-500'}
-        />
-        
-        <FeatureCard 
-          icon={<BarChart3 className="text-accent-500" size={24} />}
-          title="Analiza tu Tiempo"
-          description="Visualiza métricas de productividad y balance en tu distribución de tiempo."
-          linkTo="/dashboard"
-          linkText="Ver Dashboard"
-          status={hasSchedule ? 'Disponible' : 'No disponible'}
-          statusColor={hasSchedule ? 'text-success-500' : 'text-warning-500'}
-        />
-      </section>
-      
-      <section className="mb-8">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Brain size={20} className="text-primary-600" />
-          <span>Técnicas de Estudio Recomendadas</span>
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StudyTechniqueCard 
-            title="Técnica Pomodoro"
-            description="25 minutos de estudio, 5 minutos de descanso."
-            icon={<Clock size={20} />}
-          />
-          
-          <StudyTechniqueCard 
-            title="Técnica Feynman"
-            description="Explica los conceptos como si enseñaras a alguien más."
-            icon={<BookOpen size={20} />}
-          />
-          
-          <StudyTechniqueCard 
-            title="Repetición Espaciada"
-            description="Revisa el material en intervalos crecientes de tiempo."
-            icon={<Calendar size={20} />}
-          />
-          
-          <StudyTechniqueCard 
-            title="Mapas Conceptuales"
-            description="Organiza visualmente los conceptos y sus relaciones."
-            icon={<Brain size={20} />}
-          />
-        </div>
-      </section>
-      
       <section className="bg-neutral-100 rounded-xl p-6 mb-8">
-        <h2 className="text-xl font-bold mb-4">¿Cómo Funciona Zenith?</h2>
+        <h2 className="text-xl font-bold mb-6">¿Cómo Funciona Zenith?</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <div className="bg-primary-100 text-primary-700 w-8 h-8 rounded-full flex items-center justify-center mb-3">1</div>
-            <h3 className="font-semibold mb-2">Ingresa tu Horario</h3>
-            <p className="text-neutral-600 text-sm">Registra tus clases y compromisos semanales para identificar tus tiempos libres.</p>
+          {/* Paso 1 */}
+          <div className="bg-white p-5 rounded-lg shadow-sm border border-neutral-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200">Paso 1</span>
+              <span className="text-xs text-neutral-400">Horario</span>
+            </div>
+            <h3 className="font-semibold mb-1 text-neutral-900">Ingresa tu Horario</h3>
+            <p className="text-neutral-600 text-sm leading-relaxed">Crea bloques con tus clases y compromisos (por defecto 05:00–21:00). Así verás tus huecos libres.</p>
           </div>
-          
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <div className="bg-primary-100 text-primary-700 w-8 h-8 rounded-full flex items-center justify-center mb-3">2</div>
-            <h3 className="font-semibold mb-2">Define tus Actividades</h3>
-            <p className="text-neutral-600 text-sm">Agrega las actividades que deseas realizar durante la semana y su prioridad.</p>
+
+          {/* Paso 2 */}
+          <div className="bg-white p-5 rounded-lg shadow-sm border border-neutral-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200">Paso 2</span>
+              <span className="text-xs text-neutral-400">Actividades</span>
+            </div>
+            <h3 className="font-semibold mb-1 text-neutral-900">Añade Actividades</h3>
+            <p className="text-neutral-600 text-sm leading-relaxed">Registra tareas con tipo (académico, estudio, ejercicio, etc.) y urgencia. Arrástralas para ordenarlas por día.</p>
           </div>
-          
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <div className="bg-primary-100 text-primary-700 w-8 h-8 rounded-full flex items-center justify-center mb-3">3</div>
-            <h3 className="font-semibold mb-2">Optimiza tu Tiempo</h3>
-            <p className="text-neutral-600 text-sm">Visualiza recomendaciones y métricas para mejorar tu productividad.</p>
+
+          {/* Paso 3 */}
+          <div className="bg-white p-5 rounded-lg shadow-sm border border-neutral-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200">Paso 3</span>
+              <span className="text-xs text-neutral-400">Progreso</span>
+            </div>
+            <h3 className="font-semibold mb-1 text-neutral-900">Marca lo Completado</h3>
+            <p className="text-neutral-600 text-sm leading-relaxed">Usa el checkbox en Actividades cuando termines. Esto impacta la productividad (adherencia y finalización).</p>
+          </div>
+
+          {/* Paso 4 */}
+          <div className="bg-white p-5 rounded-lg shadow-sm border border-neutral-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200">Paso 4</span>
+              <span className="text-xs text-neutral-400">Dashboard</span>
+            </div>
+            <h3 className="font-semibold mb-1 text-neutral-900">Revisa el Dashboard</h3>
+            <p className="text-neutral-600 text-sm leading-relaxed">Consulta tu distribución de horas por tipo, tu productividad y recomendaciones simples para mejorar.</p>
+          </div>
+
+          {/* Paso 5 */}
+          <div className="bg-white p-5 rounded-lg shadow-sm border border-neutral-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200">Paso 5</span>
+              <span className="text-xs text-neutral-400">Equilibrio</span>
+            </div>
+            <h3 className="font-semibold mb-1 text-neutral-900">Añade Descansos y Ejercicio</h3>
+            <p className="text-neutral-600 text-sm leading-relaxed">Incluye pausas cortas y largas, y 3–4 sesiones de ejercicio semanales para mantener energía y foco.</p>
+          </div>
+
+          {/* Paso 6 */}
+          <div className="bg-white p-5 rounded-lg shadow-sm border border-neutral-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200">Paso 6</span>
+              <span className="text-xs text-neutral-400">Revisión</span>
+            </div>
+            <h3 className="font-semibold mb-1 text-neutral-900">Itera Cada Semana</h3>
+            <p className="text-neutral-600 text-sm leading-relaxed">Reubica bloques, limpia pendientes y apunta a 6–8h de estudio semanal si no tienes clases diarias.</p>
           </div>
         </div>
       </section>
@@ -236,57 +214,6 @@ const Home: React.FC = () => {
   );
 };
 
-interface FeatureCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  linkTo: string;
-  linkText: string;
-  status: string;
-  statusColor: string;
-}
-
-const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, linkTo, linkText, status, statusColor }) => {
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-      <div className="flex items-start justify-between mb-2">
-        <div className="p-2 bg-neutral-100 rounded-lg">
-          {icon}
-        </div>
-        <span className={`text-xs font-medium ${statusColor} bg-opacity-10 px-2 py-1 rounded-full`}>
-          {status}
-        </span>
-      </div>
-      <h3 className="font-semibold text-lg mb-2 mt-4">{title}</h3>
-      <p className="text-neutral-600 text-sm mb-4">{description}</p>
-      <Link 
-        to={linkTo} 
-        className="text-primary-600 hover:text-primary-700 font-medium text-sm flex items-center gap-1"
-      >
-        {linkText} <ArrowRight size={16} />
-      </Link>
-    </div>
-  );
-};
-
-interface StudyTechniqueCardProps {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-}
-
-const StudyTechniqueCard: React.FC<StudyTechniqueCardProps> = ({ title, description, icon }) => {
-  return (
-    <div className="bg-white border border-neutral-200 rounded-lg p-4 hover:border-primary-300 transition-colors">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="text-primary-600">
-          {icon}
-        </div>
-        <h3 className="font-medium">{title}</h3>
-      </div>
-      <p className="text-neutral-600 text-sm">{description}</p>
-    </div>
-  );
-};
+// Eliminados accesos rápidos y técnicas de estudio en Home
 
 export default Home;

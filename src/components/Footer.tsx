@@ -1,5 +1,6 @@
 import React from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
@@ -13,6 +14,10 @@ const Footer: React.FC = () => {
           
           <div className="text-center md:text-right">
             <div className="flex justify-center md:justify-end gap-4 mb-3">
+              <Link to="/sobre-nosotros" className="flex items-center gap-1 text-neutral-300 hover:text-white transition-colors">
+                <Info size={16} />
+                <span>Sobre Nosotros</span>
+              </Link>
               <a href="#" className="text-neutral-300 hover:text-white transition-colors">
                 Ayuda
               </a>

@@ -261,12 +261,12 @@ const Schedule: React.FC = () => {
 
       {/* Modal de ayuda */}
       {showHelp && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowHelp(false)}>
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-neutral-200">
               <div className="flex items-center gap-3">
                 <HelpCircle size={24} className="text-primary-600" />
-                <h2 className="text-xl font-semibold text-primary-800">¡Bienvenido a tu Organizador Personal!</h2>
+                <h2 className="text-xl font-semibold text-primary-800">¿Cómo funciona el Horario?</h2>
               </div>
               <button 
                 onClick={() => setShowHelp(false)}
@@ -278,17 +278,16 @@ const Schedule: React.FC = () => {
             
             <div className="p-6">
               <div className="text-neutral-700 space-y-4">
-                <p>Aquí puedes gestionar tu horario semanal de forma intuitiva. Algunos consejos:</p>
+                <p className="text-sm">Este módulo te permite planificar la semana con bloques de tiempo.</p>
                 <ul className="list-disc list-inside ml-4 space-y-2 text-sm">
-                  <li>Haz clic en cualquier espacio vacío del horario para añadir una actividad rápidamente</li>
-                  <li>Utiliza diferentes tipos de actividades para organizar mejor tu tiempo</li>
-                  <li>¿Necesitas ayuda? Nuestro chatbot integrado está disponible para responder tus preguntas sobre organización del tiempo</li>
-                  <li>Recuerda guardar tus cambios después de cada modificación</li>
+                  <li><strong>Añadir bloques</strong>: haz clic en un espacio vacío (se crean en pasos de 15 min) o usa “Agregar Bloque”.</li>
+                  <li><strong>Ventana activa</strong>: por defecto 05:00–21:00. Los gráficos solo consideran ese rango.</li>
+                  <li><strong>Solapamientos</strong>: el sistema evita que dos bloques se crucen el mismo día.</li>
+                  <li><strong>Editar/Eliminar</strong>: usa los botones sobre cada bloque.</li>
+                  <li><strong>Tipo de actividad</strong>: asigna “Académico”, “Estudio”, “Ejercicio”, etc. para ver su impacto en el Dashboard.</li>
                 </ul>
                 <div className="p-4 bg-primary-50 border border-primary-100 rounded-md">
-                  <p className="text-sm text-primary-700">
-                    <strong>Consejo Pro:</strong> Comienza agregando tus actividades fijas como clases o trabajo, y luego organiza el resto de tu tiempo alrededor de ellas.
-                  </p>
+                  <p className="text-sm text-primary-700">Sugerencia: registra primero clases/trabajo y luego completa con estudio, ejercicio y descansos.</p>
                 </div>
               </div>
             </div>

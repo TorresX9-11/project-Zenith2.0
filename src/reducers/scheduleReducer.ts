@@ -21,6 +21,22 @@ export const initialScheduleState: ScheduleState = {
     productivityWeights: {
       adherenceWeight: 0.7,
       completionWeight: 0.3
+    },
+    urgencyWeights: {
+      very_urgent: 1.0,
+      urgent: 0.8,
+      medium: 0.6,
+      normal: 0.4,
+      low: 0.2
+    },
+    typeWeights: {
+      academic: 1.0,
+      study: 0.9,
+      exercise: 0.6,
+      social: 0.4,
+      work: 0.5,
+      rest: 0.4,
+      personal: 0.3
     }
   }
 };

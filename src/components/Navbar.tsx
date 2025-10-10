@@ -11,7 +11,7 @@ const Navbar: React.FC = () => {
           <NavItem to="/horario" icon={<Calendar size={18} />} label="Horario" />
           <NavItem to="/actividades" icon={<ListTodo size={18} />} label="Actividades" />
           <NavItem to="/dashboard" icon={<BarChart3 size={18} />} label="Dashboard" />
-          <NavItem to="/sobre-nosotros" icon={<Info size={18} />} label="Sobre Nosotros" />
+          {/* Moved About Us link to Footer */}
         </ul>
       </div>
     </nav>

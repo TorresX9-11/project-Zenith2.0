@@ -24,7 +24,8 @@ export interface Activity {
   duration: number; // legacy field (can be used)
   priority: 'high' | 'medium' | 'low'; // legacy
   // New fields for weekly tracker
-  estimatedDuration?: number; // in hours
+  estimatedDuration?: number; // in hours (legacy)
+  estimatedMinutes?: number; // in minutes (new, preferred)
   urgency?: 'very_urgent' | 'urgent' | 'medium' | 'normal' | 'low';
   completed?: boolean;
   dayIndex?: number; // 0=lunes ... 6=domingo
@@ -63,6 +64,14 @@ export interface Settings {
     adherenceWeight: number; // default 0.7
     completionWeight: number; // default 0.3
   };
+  urgencyWeights?: {
+    very_urgent: number;
+    urgent: number;
+    medium: number;
+    normal: number;
+    low: number;
+  };
+  typeWeights?: Record<ActivityType, number>;
 }
 
 export interface ScheduleState {

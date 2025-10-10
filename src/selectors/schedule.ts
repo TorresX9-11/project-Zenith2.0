@@ -70,9 +70,21 @@ export const selectTotalOccupiedMinutes = (state: ScheduleState): number => {
 };
 
 export const selectHoursByType = (state: ScheduleState, type: ActivityType): number => {
+  const getBlockDurationFull = (block: TimeBlock): number => {
+    const start = toMinutes(block.startTime);
+    const end = toMinutes(block.endTime);
+    return end >= start ? (end - start) : ((24 * 60) - start) + end;
+  };
+
   const minutes = state.timeBlocks
     .filter(b => b.type === 'occupied' && b.activityType === type)
-    .reduce((sum, b) => sum + getBlockDurationWithinWindow(b, state), 0);
+    .reduce((sum, b) => {
+      if (type === 'rest') {
+        // Para 'rest', contar la duración completa del bloque, sin recortar por la ventana activa
+        return sum + getBlockDurationFull(b);
+      }
+      return sum + getBlockDurationWithinWindow(b, state);
+    }, 0);
   return minutes / 60;
 };
 
@@ -110,10 +122,15 @@ export const selectUnplannedActivitiesByDay = (state: ScheduleState, dayIndex: n
 };
 
 export const selectUnplannedActivityHoursByType = (state: ScheduleState, type: ActivityType): number => {
-  const total = state.activities
+  const totalHours = state.activities
     .filter(a => !a.timeBlockId && a.type === type)
-    .reduce((sum, a) => sum + (a.estimatedDuration || 0), 0);
-  return total;
+    .reduce((sum, a) => {
+      const minutes = (a.estimatedMinutes !== undefined && a.estimatedMinutes !== null)
+        ? a.estimatedMinutes
+        : ((a.estimatedDuration || 0) * 60);
+      return sum + (minutes / 60);
+    }, 0);
+  return totalHours;
 };
 
 export const selectTotalFreeHours = (state: ScheduleState): number => {
@@ -124,21 +141,66 @@ export const selectTotalFreeHours = (state: ScheduleState): number => {
 
 // Adherence & Completion
 export const selectAdherenceRate = (state: ScheduleState): number => {
-  const plannedMinutes = state.timeBlocks
-    .filter(b => b.type === 'occupied')
-    .reduce((sum, b) => sum + selectTotalOccupiedMinutes({ ...state, timeBlocks: [b] } as ScheduleState), 0); // not optimal but correct; small n
-  const completedMinutes = state.timeBlocks
-    .filter(b => b.type === 'occupied' && b.completedAt)
-    .reduce((sum, b) => sum + selectTotalOccupiedMinutes({ ...state, timeBlocks: [b] } as ScheduleState), 0);
-  if (plannedMinutes === 0) return 0;
-  return Math.min(100, Math.round((completedMinutes / plannedMinutes) * 100));
+  type UrgencyKey = 'very_urgent' | 'urgent' | 'medium' | 'normal' | 'low';
+  const typeWeights = state.settings.typeWeights || {
+    academic: 1.0,
+    study: 0.9,
+    exercise: 0.6,
+    social: 0.4,
+    work: 0.5,
+    rest: 0.4,
+    personal: 0.3
+  };
+  const urgencyWeights = state.settings.urgencyWeights || {
+    very_urgent: 1.0,
+    urgent: 0.8,
+    medium: 0.6,
+    normal: 0.4,
+    low: 0.2
+  };
+
+  const isPlanned = (a: any) => !!a.timeBlockId || (a.preferredDays && a.preferredDays.length) || !!a.preferredTime;
+
+  const planned = state.activities.filter(a => isPlanned(a));
+  const denom = planned.reduce((s, a) => s + (typeWeights[a.type] ?? 1), 0);
+  if (denom === 0) return 0;
+  const num = planned
+    .filter(a => a.completed)
+    .reduce((s, a) => {
+      const uk: UrgencyKey = (a.urgency ?? 'normal') as UrgencyKey;
+      return s + (typeWeights[a.type] ?? 1) * (urgencyWeights[uk] ?? 0.4);
+    }, 0);
+  return Math.min(100, Math.round((num / denom) * 100));
 };
 
 export const selectCompletionProgress = (state: ScheduleState): number => {
-  const totalPlanned = state.timeBlocks.filter(b => b.type === 'occupied').length;
-  const completed = state.timeBlocks.filter(b => b.type === 'occupied' && b.completedAt).length;
-  if (totalPlanned === 0) return 0;
-  return Math.min(100, Math.round((completed / totalPlanned) * 100));
+  type UrgencyKey = 'very_urgent' | 'urgent' | 'medium' | 'normal' | 'low';
+  const typeWeights = state.settings.typeWeights || {
+    academic: 1.0,
+    study: 0.9,
+    exercise: 0.6,
+    social: 0.4,
+    work: 0.5,
+    rest: 0.4,
+    personal: 0.3
+  };
+  const urgencyWeights = state.settings.urgencyWeights || {
+    very_urgent: 1.0,
+    urgent: 0.8,
+    medium: 0.6,
+    normal: 0.4,
+    low: 0.2
+  };
+  const activities = state.activities;
+  const denom = activities.reduce((s, a) => s + (typeWeights[a.type] ?? 1), 0);
+  if (denom === 0) return 0;
+  const num = activities
+    .filter(a => a.completed)
+    .reduce((s, a) => {
+      const uk: UrgencyKey = (a.urgency ?? 'normal') as UrgencyKey;
+      return s + (typeWeights[a.type] ?? 1) * (urgencyWeights[uk] ?? 0.4);
+    }, 0);
+  return Math.min(100, Math.round((num / denom) * 100));
 };
 
 export const selectProductivityScore = (state: ScheduleState): number => {
